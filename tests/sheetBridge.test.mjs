@@ -31,3 +31,28 @@ test('the application reads and updates the Apps Script bridge with a shared sec
     else process.env.GOOGLE_APPS_SCRIPT_SECRET = previousSecret;
   }
 });
+
+test('the bridge retries a transient timeout without changing the requested action', async () => {
+  const previousUrl = process.env.GOOGLE_APPS_SCRIPT_URL;
+  const previousSecret = process.env.GOOGLE_APPS_SCRIPT_SECRET;
+  const previousFetch = globalThis.fetch;
+  process.env.GOOGLE_APPS_SCRIPT_URL = 'https://script.google.com/macros/s/test/exec';
+  process.env.GOOGLE_APPS_SCRIPT_SECRET = 'b'.repeat(64);
+  const actions = [];
+  globalThis.fetch = async (_url, options) => {
+    actions.push(JSON.parse(options.body).action);
+    if (actions.length === 1) throw new DOMException('Timeout', 'TimeoutError');
+    return new Response(JSON.stringify({ ok: true, spreadsheetId: 'sheet-id', gid: 0,
+      title: 'Posts', timeZone: 'Asia/Kolkata', rows: [] }), { status: 200 });
+  };
+  try {
+    await getSheet();
+    assert.deepEqual(actions, ['list', 'list']);
+  } finally {
+    globalThis.fetch = previousFetch;
+    if (previousUrl === undefined) delete process.env.GOOGLE_APPS_SCRIPT_URL;
+    else process.env.GOOGLE_APPS_SCRIPT_URL = previousUrl;
+    if (previousSecret === undefined) delete process.env.GOOGLE_APPS_SCRIPT_SECRET;
+    else process.env.GOOGLE_APPS_SCRIPT_SECRET = previousSecret;
+  }
+});

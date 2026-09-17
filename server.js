@@ -14,8 +14,12 @@ const app = next({ dev });
 const handle = app.getRequestHandler();
 
 app.prepare().then(async () => {
-  // Start the cron scheduler alongside the Next.js server
-  await startScheduler();
+  // Start local cron only when NOT on Vercel (Vercel uses its own cron → /api/cron)
+  if (!process.env.VERCEL) {
+    await startScheduler();
+  } else {
+    console.log('[CRON] Skipping local scheduler — Vercel Cron is configured.');
+  }
 
   const server = createServer((req, res) => {
     const parsedUrl = parse(req.url, true);

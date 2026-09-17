@@ -12,6 +12,12 @@ The Google Sheet is the input and status display. The application reads it about
 6. Make sure the LinkedIn account is connected **inside the application** using its existing `/api/auth` flow. The old LinkedIn OAuth properties in Apps Script are not used. The application's `LINKEDIN_REDIRECT_URI` must point to its own `/api/auth/callback`, not the Apps Script `/exec` URL.
 7. Start the application with `npm.cmd run dev` (or `npm run dev` on shells where `npm` works). Keep the application and MongoDB running for automatic scheduling and publishing.
 
+## Manual fetch from All Posts
+
+Set `SHEET_SYNC_ADMIN_KEY` in the deployed application's server environment to a separate random 32+ character value (generate one with the command in step 3). Redeploy or restart the application. On **All Posts**, click **Fetch from Sheet** and enter that key. This imports new `Pending` rows immediately and refreshes the list; it does **not** publish them immediately. Do not put the key in a `NEXT_PUBLIC_` variable, a sheet cell, or source control.
+
+Connecting LinkedIn only saves the account. It does not automatically import sheet rows. The automatic one-minute sync and scheduled publishing run only while the deployment starts the application with `npm start` (`node server.js --production`) and keeps that process running. A deployment that only serves Next.js routes without running `server.js` needs a separate scheduled worker; the manual button alone will not publish a post at its due time.
+
 ## Sheet columns and behavior
 
 | Column | Meaning |

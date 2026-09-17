@@ -48,7 +48,9 @@ async function downloadImage(url) {
 async function getAccount() {
   const selected = process.env.GOOGLE_SHEET_ACCOUNT_ID;
   if (selected) {
-    if (!isObjectId(selected)) throw new Error('GOOGLE_SHEET_ACCOUNT_ID is invalid');
+    if (!isObjectId(selected)) {
+      throw new Error('GOOGLE_SHEET_ACCOUNT_ID must be a 24-character app Account ID; remove it when using one account');
+    }
     const account = await Account.findById(selected).select('+accessToken');
     if (!account) throw new Error('Configured LinkedIn account was not found');
     return account;
@@ -70,7 +72,15 @@ function outcome(post, timeZone) {
   return ['Scheduled', '', ''];
 }
 
-export async function syncSheet() {
+let activeSync = null;
+
+export function syncSheet() {
+  if (activeSync) return activeSync;
+  activeSync = runSyncSheet().finally(() => { activeSync = null; });
+  return activeSync;
+}
+
+async function runSyncSheet() {
   if (!sheetConfigured()) return;
   await connectDB();
   const sheet = await getSheet();

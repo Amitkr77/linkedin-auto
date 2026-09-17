@@ -18,6 +18,7 @@ export default function PostsPage() {
   const [editPost, setEditPost] = useState(null);
   const [selected, setSelected] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
+  const [sheetSyncing, setSheetSyncing] = useState(false);
   const addToast = useToast();
 
   const fetchPosts = useCallback(async () => {
@@ -38,6 +39,30 @@ export default function PostsPage() {
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
   // Clear selection on filter change
   useEffect(() => { setSelected(new Set()); }, [filter]);
+
+  const fetchFromSheet = async () => {
+    const adminKey = window.prompt('Enter your sheet sync admin key:');
+    if (adminKey === null) return;
+    if (!adminKey) {
+      addToast('error', 'Sheet sync admin key is required.');
+      return;
+    }
+    setSheetSyncing(true);
+    try {
+      const res = await fetch('/api/sheet/sync', {
+        method: 'POST',
+        headers: { 'x-sheet-sync-admin-key': adminKey },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to fetch from Sheet');
+      addToast('success', data.message);
+      await fetchPosts();
+    } catch (err) {
+      addToast('error', err.message);
+    } finally {
+      setSheetSyncing(false);
+    }
+  };
 
   const publish = async (id) => {
     if (!confirm('Publish this post to LinkedIn now?')) return;
@@ -154,6 +179,9 @@ export default function PostsPage() {
           ))}
         </div>
         <div className={styles.toolbarRight}>
+          <button className="btn btn-outline btn-sm" onClick={fetchFromSheet} disabled={sheetSyncing}>
+            {sheetSyncing ? 'Fetching...' : 'Fetch from Sheet'}
+          </button>
           {selectablePosts.length > 0 && (
             <button className="btn btn-ghost btn-sm" onClick={toggleAll}>
               {selected.size === selectablePosts.length ? 'Deselect All' : 'Select All'}
