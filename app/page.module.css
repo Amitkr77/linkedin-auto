@@ -1,0 +1,95 @@
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.statCard {
+  text-align: center;
+  padding: 22px 16px;
+}
+
+.statValue {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--blue);
+  line-height: 1;
+}
+
+.statLabel {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+.pending .statValue  { color: var(--orange); }
+.published .statValue { color: var(--green); }
+.failed .statValue   { color: var(--red); }
+
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.sectionTitle {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text-primary);
+}
+
+/* Recent posts list */
+.postList {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.postRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border-color);
+}
+.postRow:last-child { border-bottom: none; }
+
+.postInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.commentary {
+  font-size: 14px;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.4;
+}
+
+.postTime {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+  display: block;
+}
+
+.viewAll {
+  display: inline-block;
+  margin-top: 14px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--blue);
+}
+.viewAll:hover { text-decoration: underline; }
+
+@media (max-width: 640px) {
+  .statsGrid { grid-template-columns: repeat(2, 1fr); }
+  .statValue { font-size: 28px; }
+}

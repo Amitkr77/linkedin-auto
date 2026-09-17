@@ -1,0 +1,32 @@
+.bar {
+  position: fixed;
+  bottom: 0;
+  left: 240px;
+  right: 0;
+  z-index: 100;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -4px 16px rgba(0,0,0,0.1);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideUp 0.2s ease;
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+
+.count {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.spacer { flex: 1; }
+
+@media (max-width: 768px) {
+  .bar { left: 0; padding: 10px 16px; }
+}

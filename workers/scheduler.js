@@ -1,0 +1,84 @@
+import cron from 'node-cron';
+import { connectDB } from '../lib/db.js';
+import Post from '../lib/models/Post.js';
+import { createLinkedInPost } from '../lib/linkedinService.js';
+import { syncSheet } from './sheetSync.js';
+import { sheetConfigured } from '../lib/sheetBridge.js';
+
+let running = false;
+
+export async function startScheduler() {
+  await connectDB();
+  if (!sheetConfigured()) {
+    console.warn('[SHEET] Apps Script bridge is not configured; sheet sync is disabled.');
+  }
+
+  cron.schedule('* * * * *', async () => {
+    if (running) return;
+    running = true;
+    console.log(`[CRON ${new Date().toISOString()}] Checking for pending posts...`);
+
+    try {
+      try {
+        await syncSheet();
+      } catch (error) {
+        console.error('[SHEET SYNC ERROR]', error);
+      }
+      let processed = 0;
+      while (processed < 100) {
+        const post = await Post.findOneAndUpdate(
+          { status: 'PENDING', scheduledAt: { $lte: new Date() } },
+          { $set: { status: 'PROCESSING', errorMessage: null } },
+          { new: true, sort: { scheduledAt: 1 } }
+        ).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt' });
+        if (!post) break;
+        processed += 1;
+
+        if (!post.account) {
+          post.status = 'FAILED';
+          post.errorMessage = 'LinkedIn account not found';
+          await post.save();
+          continue;
+        }
+        if (new Date(post.account.tokenExpiresAt) < new Date()) {
+          post.status = 'FAILED';
+          post.errorMessage = 'Access token expired';
+          await post.save();
+          console.error(`[FAILED] Post ${post._id}: token expired`);
+          continue;
+        }
+
+        try {
+          const urn = await createLinkedInPost(
+            post.account.accessToken,
+            post.account.authorUrn,
+            post.commentary,
+            post.mediaUrl
+          );
+          post.status = 'PUBLISHED';
+          post.linkedinPostUrn = urn;
+          post.publishedAt = new Date();
+          await post.save();
+          console.log(`[SUCCESS] Post ${post._id} → ${urn}`);
+        } catch (err) {
+          post.status = 'FAILED';
+          post.errorMessage = err.response?.data?.message || err.message;
+          await post.save();
+          console.error(`[FAILED] Post ${post._id}:`, post.errorMessage);
+        }
+      }
+      if (processed) console.log(`[CRON] Processed ${processed} due post(s).`);
+    } catch (err) {
+      console.error('[CRON ERROR]', err.message);
+    } finally {
+      try {
+        await syncSheet();
+      } catch (error) {
+        console.error('[SHEET OUTCOME SYNC ERROR]', error);
+      }
+      running = false;
+    }
+  });
+
+  console.log('[CRON] Scheduler started — polling every 60s.');
+}
