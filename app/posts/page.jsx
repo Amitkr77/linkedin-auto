@@ -41,21 +41,12 @@ export default function PostsPage() {
   useEffect(() => { setSelected(new Set()); }, [filter]);
 
   const fetchFromSheet = async () => {
-    const adminKey = window.prompt('Enter your sheet sync admin key:');
-    if (adminKey === null) return;
-    if (!adminKey) {
-      addToast('error', 'Sheet sync admin key is required.');
-      return;
-    }
     setSheetSyncing(true);
     try {
-      const res = await fetch('/api/sheet/sync', {
-        method: 'POST',
-        headers: { 'x-sheet-sync-admin-key': adminKey },
-      });
+      const res = await fetch('/api/cron/tick', { method: 'POST' });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Unable to fetch from Sheet');
-      addToast('success', data.message);
+      if (!res.ok) throw new Error(data.error || 'Unable to sync from Sheet');
+      addToast('success', `Sheet synced. ${data.processed || 0} post(s) processed.`);
       await fetchPosts();
     } catch (err) {
       addToast('error', err.message);
