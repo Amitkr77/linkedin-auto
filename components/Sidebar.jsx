@@ -1,4 +1,5 @@
 'use client';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import ThemeToggle from './ThemeToggle';
@@ -72,6 +73,29 @@ const navLinks = [
 
 export default function Sidebar({ isOpen, onToggle }) {
   const pathname = usePathname();
+  const [hasAccount, setHasAccount] = useState(null);
+
+  useEffect(() => {
+    let active = true;
+    const refreshAccounts = async () => {
+      try {
+        const response = await fetch('/api/auth/accounts', { cache: 'no-store' });
+        if (!response.ok) throw new Error('Unable to load accounts');
+        const accounts = await response.json();
+        if (active) setHasAccount(Array.isArray(accounts) && accounts.length > 0);
+      } catch {
+        if (active) setHasAccount(null);
+      }
+    };
+    refreshAccounts();
+    window.addEventListener('focus', refreshAccounts);
+    window.addEventListener('linkedin-accounts-changed', refreshAccounts);
+    return () => {
+      active = false;
+      window.removeEventListener('focus', refreshAccounts);
+      window.removeEventListener('linkedin-accounts-changed', refreshAccounts);
+    };
+  }, [pathname]);
 
   return (
     <>
@@ -108,12 +132,19 @@ export default function Sidebar({ isOpen, onToggle }) {
         {/* Footer */}
         <div className={styles.footer}>
           <ThemeToggle />
-          <a href="/api/auth" className={styles.connectBtn}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
-            </svg>
-            <span>Connect LinkedIn</span>
-          </a>
+          {hasAccount === false && (
+            <a href="/api/auth" className={styles.connectBtn}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/>
+              </svg>
+              <span>Connect LinkedIn</span>
+            </a>
+          )}
+          {hasAccount === true && (
+            <Link href="/accounts" className={styles.connectBtn}>
+              <span>Manage Accounts</span>
+            </Link>
+          )}
         </div>
       </aside>
     </>

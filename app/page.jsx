@@ -64,7 +64,11 @@ export default async function Dashboard({ searchParams }) {
       {/* Quick actions */}
       <div className={styles.actions}>
         <Link href="/schedule" className="btn btn-primary">+ Create Post</Link>
-        <a href="/api/auth" className="btn btn-outline">Connect Account</a>
+        {stats.accounts > 0 ? (
+          <Link href="/accounts" className="btn btn-outline">Manage Accounts</Link>
+        ) : (
+          <a href="/api/auth" className="btn btn-outline">Connect LinkedIn</a>
+        )}
       </div>
 
       {/* Recent posts */}

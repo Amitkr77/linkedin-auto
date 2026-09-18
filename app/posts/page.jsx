@@ -6,6 +6,7 @@ import { PostListSkeleton } from '@/components/Skeleton';
 import EmptyState from '@/components/EmptyState';
 import EditPostModal from '@/components/EditPostModal';
 import BulkToolbar from '@/components/BulkToolbar';
+import ImportModal from '@/components/ImportModal';
 import styles from './page.module.css';
 
 const STATUS_OPTIONS = ['ALL', 'DRAFT', 'PENDING', 'PUBLISHED', 'FAILED'];
@@ -19,6 +20,8 @@ export default function PostsPage() {
   const [selected, setSelected] = useState(new Set());
   const [bulkLoading, setBulkLoading] = useState(false);
   const [sheetSyncing, setSheetSyncing] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [accounts, setAccounts] = useState([]);
   const addToast = useToast();
 
   const fetchPosts = useCallback(async () => {
@@ -39,14 +42,27 @@ export default function PostsPage() {
   useEffect(() => { fetchPosts(); }, [fetchPosts]);
   // Clear selection on filter change
   useEffect(() => { setSelected(new Set()); }, [filter]);
+  // Fetch accounts for import modal
+  useEffect(() => {
+    fetch('/api/auth/accounts').then((r) => r.json()).then((d) => { if (Array.isArray(d)) setAccounts(d); }).catch(() => {});
+  }, []);
 
   const fetchFromSheet = async () => {
+    const adminKey = window.prompt('Enter your sheet sync admin key:');
+    if (adminKey === null) return;
+    if (!adminKey) {
+      addToast('error', 'Sheet sync admin key is required.');
+      return;
+    }
     setSheetSyncing(true);
     try {
-      const res = await fetch('/api/cron/tick', { method: 'POST' });
+      const res = await fetch('/api/sheet/sync', {
+        method: 'POST',
+        headers: { 'x-sheet-sync-admin-key': adminKey },
+      });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Unable to sync from Sheet');
-      addToast('success', `Sheet synced. ${data.processed || 0} post(s) processed.`);
+      addToast('success', data.message);
       await fetchPosts();
     } catch (err) {
       addToast('error', err.message);
@@ -170,6 +186,12 @@ export default function PostsPage() {
           ))}
         </div>
         <div className={styles.toolbarRight}>
+          <button className="btn btn-outline btn-sm" onClick={() => setImportOpen(true)}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            Import CSV / Excel
+          </button>
           <button className="btn btn-outline btn-sm" onClick={fetchFromSheet} disabled={sheetSyncing}>
             {sheetSyncing ? 'Fetching...' : 'Fetch from Sheet'}
           </button>
@@ -311,6 +333,14 @@ export default function PostsPage() {
           onSaved={handleEditSaved}
         />
       )}
+
+      {/* Import modal */}
+      <ImportModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        accounts={accounts}
+        onImported={fetchPosts}
+      />
     </div>
   );
 }

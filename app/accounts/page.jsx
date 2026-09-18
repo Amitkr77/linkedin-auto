@@ -33,6 +33,7 @@ export default function AccountsPage() {
       if (!res.ok) throw new Error(data.error);
       addToast('success', 'Account disconnected.');
       fetchAccounts();
+      window.dispatchEvent(new Event('linkedin-accounts-changed'));
     } catch (err) {
       addToast('error', err.message);
     }
@@ -53,9 +54,11 @@ export default function AccountsPage() {
         <p>Manage your connected LinkedIn accounts.</p>
       </div>
 
-      <div style={{ marginBottom: 20 }}>
-        <a href="/api/auth" className="btn btn-primary">+ Connect Account</a>
-      </div>
+      {!loading && accounts.length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <a href="/api/auth" className="btn btn-primary">+ Add Another Account</a>
+        </div>
+      )}
 
       {loading ? (
         <p style={{ color: 'var(--text-muted)' }}>Loading...</p>

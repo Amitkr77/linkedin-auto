@@ -24,7 +24,7 @@ function publicIp(address) {
   return false;
 }
 
-async function downloadImage(url) {
+export async function downloadImage(url) {
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port) throw new Error('Image URL must be public HTTPS');
   const addresses = await dns.lookup(parsed.hostname, { all: true });

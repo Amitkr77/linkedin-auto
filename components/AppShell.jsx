@@ -1,27 +1,10 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import Sidebar from './Sidebar';
 import styles from './AppShell.module.css';
 
-// Ping /api/cron/tick every 60s while the tab is visible.
-// This keeps the scheduler running on Vercel's free tier
-// (which only allows 1 cron/day).
-function useSchedulerHeartbeat() {
-  useEffect(() => {
-    const tick = () => {
-      if (document.visibilityState === 'hidden') return;
-      fetch('/api/cron/tick', { method: 'POST' }).catch(() => {});
-    };
-    // First tick after 5s (let the page settle)
-    const initial = setTimeout(tick, 5_000);
-    const interval = setInterval(tick, 60_000);
-    return () => { clearTimeout(initial); clearInterval(interval); };
-  }, []);
-}
-
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  useSchedulerHeartbeat();
 
   return (
     <div className={styles.shell}>
