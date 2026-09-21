@@ -2,8 +2,6 @@ import cron from 'node-cron';
 import { connectDB } from '../lib/db.js';
 import Post from '../lib/models/Post.js';
 import { createLinkedInPost } from '../lib/linkedinService.js';
-import { syncSheet } from './sheetSync.js';
-import { sheetConfigured } from '../lib/sheetBridge.js';
 
 let running = false;
 
@@ -15,24 +13,16 @@ export async function runSchedulerTick() {
 
   try {
     await connectDB();
-    if (sheetConfigured()) {
-      try {
-        await syncSheet();
-      } catch (error) {
-        console.error('[SHEET SYNC ERROR]', error);
-      }
-    }
-
     while (processed < 100) {
       const post = await Post.findOneAndUpdate(
-        { status: 'PENDING', scheduledAt: { $lte: new Date() } },
+        { ownerId: { $type: 'string' }, status: 'PENDING', scheduledAt: { $lte: new Date() } },
         { $set: { status: 'PROCESSING', errorMessage: null } },
         { new: true, sort: { scheduledAt: 1 } }
-      ).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt' });
+      ).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt ownerId' });
       if (!post) break;
       processed += 1;
 
-      if (!post.account) {
+      if (!post.account || post.account.ownerId !== post.ownerId) {
         post.status = 'FAILED';
         post.errorMessage = 'LinkedIn account not found';
         await post.save();
@@ -71,23 +61,12 @@ export async function runSchedulerTick() {
     console.error('[CRON ERROR]', error);
     throw error;
   } finally {
-    if (processed > 0 && sheetConfigured()) {
-      try {
-        await syncSheet();
-      } catch (error) {
-        console.error('[SHEET OUTCOME SYNC ERROR]', error);
-      }
-    }
     running = false;
   }
 }
 
 export async function startScheduler() {
   await connectDB();
-  if (!sheetConfigured()) {
-    console.warn('[SHEET] Apps Script bridge is not configured; sheet sync is disabled.');
-  }
-
   cron.schedule('* * * * *', () => {
     runSchedulerTick().catch((error) => console.error('[CRON TASK ERROR]', error));
   });

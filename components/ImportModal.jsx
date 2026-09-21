@@ -6,7 +6,6 @@ export default function ImportModal({ open, onClose, accounts, onImported }) {
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState(null);
   const [timeZone, setTimeZone] = useState('Asia/Kolkata');
-  const [adminKey, setAdminKey] = useState('');
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
   const inputRef = useRef(null);
@@ -14,14 +13,13 @@ export default function ImportModal({ open, onClose, accounts, onImported }) {
   const close = () => {
     setAccountId('');
     setFile(null);
-    setAdminKey('');
     setResult(null);
     if (inputRef.current) inputRef.current.value = '';
     onClose();
   };
 
   const importFile = async () => {
-    if (!file || !accountId || !timeZone || !adminKey) return;
+    if (!file || !accountId || !timeZone) return;
     setImporting(true);
     setResult(null);
     const form = new FormData();
@@ -31,7 +29,6 @@ export default function ImportModal({ open, onClose, accounts, onImported }) {
     try {
       const response = await fetch('/api/posts/import', {
         method: 'POST',
-        headers: { 'x-sheet-sync-admin-key': adminKey },
         body: form,
       });
       const data = await response.json();
@@ -53,7 +50,7 @@ export default function ImportModal({ open, onClose, accounts, onImported }) {
       footer={
         <>
           <button className="btn btn-ghost" onClick={close} disabled={importing}>Close</button>
-          <button className="btn btn-primary" onClick={importFile} disabled={importing || !file || !accountId || !timeZone || !adminKey}>
+          <button className="btn btn-primary" onClick={importFile} disabled={importing || !file || !accountId || !timeZone}>
             {importing ? 'Importing...' : 'Import posts'}
           </button>
         </>
@@ -77,10 +74,6 @@ export default function ImportModal({ open, onClose, accounts, onImported }) {
       <div className="form-group">
         <label>Schedule time zone</label>
         <input value={timeZone} onChange={(event) => setTimeZone(event.target.value)} placeholder="Asia/Kolkata" />
-      </div>
-      <div className="form-group">
-        <label>Import admin key</label>
-        <input type="password" autoComplete="off" value={adminKey} onChange={(event) => setAdminKey(event.target.value)} />
       </div>
       <p style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
         Use your sheet headers: Post Text, Image URL (optional), Scheduled Date (YYYY-MM-DD), Scheduled Time (HH:mm), Status (Pending). Posted At and Error are ignored. Already-posted rows and rows with an Automation ID are skipped. Times must be in the future. Up to 100 rows and 2 MB per file.

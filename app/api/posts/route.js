@@ -11,9 +11,12 @@ import {
   parseDate,
   publicError,
 } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 export async function GET(request) {
   try {
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
     const accountId = searchParams.get('accountId');
@@ -28,7 +31,7 @@ export async function GET(request) {
     }
     await connectDB();
 
-    const filter = {};
+    const filter = { ownerId };
     if (status) filter.status = status;
     if (accountId) filter.account = accountId;
     if (from || to) {
@@ -48,6 +51,8 @@ export async function GET(request) {
 
 export async function POST(request) {
   try {
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     const formData = await request.formData();
     const accountId = formData.get('accountId');
     const commentary = formData.get('commentary');
@@ -76,7 +81,7 @@ export async function POST(request) {
     }
 
     await connectDB();
-    const account = await Account.findById(accountId).select('+accessToken');
+    const account = await Account.findOne({ _id: accountId, ownerId }).select('+accessToken');
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
 
     if (new Date(account.tokenExpiresAt) < new Date()) {
@@ -98,6 +103,7 @@ export async function POST(request) {
     }
 
     const post = await Post.create({
+      ownerId,
       account: account._id,
       commentary: commentary.trim(),
       mediaUrl,

@@ -4,22 +4,26 @@ import Post from '@/lib/models/Post';
 import Account from '@/lib/models/Account';
 import EmptyState from '@/components/EmptyState';
 import styles from './page.module.css';
+import { auth } from '@/lib/auth';
+import { syncLinkedInAccount } from '@/lib/currentUser';
+import { headers } from 'next/headers';
+import { redirect } from 'next/navigation';
 
-async function getStats() {
+async function getStats(ownerId) {
   await connectDB();
   const [total, pending, published, failed, accounts] = await Promise.all([
-    Post.countDocuments(),
-    Post.countDocuments({ status: 'PENDING' }),
-    Post.countDocuments({ status: 'PUBLISHED' }),
-    Post.countDocuments({ status: 'FAILED' }),
-    Account.countDocuments(),
+    Post.countDocuments({ ownerId }),
+    Post.countDocuments({ ownerId, status: 'PENDING' }),
+    Post.countDocuments({ ownerId, status: 'PUBLISHED' }),
+    Post.countDocuments({ ownerId, status: 'FAILED' }),
+    Account.countDocuments({ ownerId }),
   ]);
   return { total, pending, published, failed, accounts };
 }
 
-async function getRecentPosts() {
+async function getRecentPosts(ownerId) {
   await connectDB();
-  return Post.find()
+  return Post.find({ ownerId })
     .sort({ createdAt: -1 })
     .limit(5)
     .populate('account', 'authorUrn')
@@ -27,7 +31,10 @@ async function getRecentPosts() {
 }
 
 export default async function Dashboard({ searchParams }) {
-  const [stats, recentPosts] = await Promise.all([getStats(), getRecentPosts()]);
+  const session = await auth.api.getSession({ headers: await headers() });
+  if (!session) redirect('/sign-in');
+  await syncLinkedInAccount(session);
+  const [stats, recentPosts] = await Promise.all([getStats(session.user.id), getRecentPosts(session.user.id)]);
   const connected = (await searchParams)?.connected;
   const authError = (await searchParams)?.error;
 
@@ -39,7 +46,7 @@ export default async function Dashboard({ searchParams }) {
       </div>
 
       {connected && (
-        <div className="alert alert-success">LinkedIn account connected successfully!</div>
+        <div className="alert alert-success">Signed in with LinkedIn successfully!</div>
       )}
       {authError && (
         <div className="alert alert-error">Authentication failed. Please try again.</div>
@@ -64,11 +71,7 @@ export default async function Dashboard({ searchParams }) {
       {/* Quick actions */}
       <div className={styles.actions}>
         <Link href="/schedule" className="btn btn-primary">+ Create Post</Link>
-        {stats.accounts > 0 ? (
-          <Link href="/accounts" className="btn btn-outline">Manage Accounts</Link>
-        ) : (
-          <a href="/api/auth" className="btn btn-outline">Connect LinkedIn</a>
-        )}
+        <Link href="/accounts" className="btn btn-outline">LinkedIn Account</Link>
       </div>
 
       {/* Recent posts */}

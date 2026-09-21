@@ -3,13 +3,16 @@ import { connectDB } from '@/lib/db';
 import Account from '@/lib/models/Account';
 import Post from '@/lib/models/Post';
 import { isObjectId, publicError } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid account id' }, { status: 400 });
     await connectDB();
-    const account = await Account.findById(id).select('-accessToken').lean();
+    const account = await Account.findOne({ _id: id, ownerId }).select('-accessToken').lean();
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
     return NextResponse.json(account);
   } catch (error) {
@@ -20,13 +23,15 @@ export async function GET(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid account id' }, { status: 400 });
     await connectDB();
-    const account = await Account.findByIdAndDelete(id);
+    const account = await Account.findOneAndDelete({ _id: id, ownerId });
     if (!account) return NextResponse.json({ error: 'Account not found' }, { status: 404 });
 
     // Clean up pending/draft posts for this account
-    await Post.deleteMany({ account: id, status: { $in: ['DRAFT', 'PENDING'] } });
+    await Post.deleteMany({ ownerId, account: id, status: { $in: ['DRAFT', 'PENDING'] } });
 
     return NextResponse.json({ message: 'Account disconnected' });
   } catch (error) {

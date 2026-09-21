@@ -79,7 +79,7 @@ export default function SchedulePost() {
       {accounts.length === 0 && (
         <div className="alert alert-error">
           No LinkedIn account connected.{' '}
-          <a href="/api/auth" style={{ textDecoration: 'underline', fontWeight: 600 }}>Connect one →</a>
+          <a href="/sign-in" style={{ textDecoration: 'underline', fontWeight: 600 }}>Sign in again</a>
         </div>
       )}
 

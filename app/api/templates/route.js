@@ -2,11 +2,14 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Template from '@/lib/models/Template';
 import { publicError } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
-export async function GET() {
+export async function GET(request) {
   try {
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     await connectDB();
-    const templates = await Template.find().sort({ usageCount: -1, updatedAt: -1 }).lean();
+    const templates = await Template.find({ ownerId }).sort({ usageCount: -1, updatedAt: -1 }).lean();
     return NextResponse.json(templates);
   } catch (error) {
     return publicError(error, 'Unable to load templates');
@@ -15,6 +18,8 @@ export async function GET() {
 
 export async function POST(request) {
   try {
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     const body = await request.json();
     const { name, content, category } = body;
 
@@ -27,6 +32,7 @@ export async function POST(request) {
 
     await connectDB();
     const template = await Template.create({
+      ownerId,
       name: name.trim(),
       content: content.trim(),
       category: category?.trim() || 'General',

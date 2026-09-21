@@ -8,6 +8,7 @@ import { downloadImage } from '@/workers/sheetSync';
 import { uploadImageAsset } from '@/lib/linkedinService';
 import Account from '@/lib/models/Account';
 import Post from '@/lib/models/Post';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -23,15 +24,8 @@ function cellValue(value) {
 }
 
 export async function POST(request) {
-  const key = process.env.SHEET_SYNC_ADMIN_KEY;
-  if (!key || key.length < 32) {
-    return Response.json({ error: 'Set SHEET_SYNC_ADMIN_KEY on the server to enable file imports.' }, { status: 503 });
-  }
-  const expected = crypto.createHash('sha256').update(key).digest();
-  const supplied = crypto.createHash('sha256').update(request.headers.get('x-sheet-sync-admin-key') || '').digest();
-  if (!crypto.timingSafeEqual(expected, supplied)) {
-    return Response.json({ error: 'Invalid import admin key.' }, { status: 401 });
-  }
+  const ownerId = await getOwnerId(request);
+  if (!ownerId) return unauthorized();
 
   try {
     const form = await request.formData();
@@ -67,7 +61,7 @@ export async function POST(request) {
     const { posts, skipped, errors } = parseUploadRows(matrix, timeZone);
 
     await connectDB();
-    const account = await Account.findById(accountId).select('+accessToken');
+    const account = await Account.findOne({ _id: accountId, ownerId }).select('+accessToken');
     if (!account) return Response.json({ error: 'LinkedIn account not found.' }, { status: 404 });
     if (account.tokenExpiresAt <= new Date()) {
       return Response.json({ error: 'LinkedIn access expired. Reconnect the account before importing.' }, { status: 401 });
@@ -77,7 +71,7 @@ export async function POST(request) {
     for (const item of posts) {
       try {
         const importKey = crypto.createHash('sha256')
-          .update(JSON.stringify([String(account._id), item.commentary, item.imageUrl, item.scheduledAt.toISOString()]))
+          .update(JSON.stringify([ownerId, String(account._id), item.commentary, item.imageUrl, item.scheduledAt.toISOString()]))
           .digest('hex');
         if (await Post.exists({ 'importSource.key': importKey })) {
           result.skipped += 1;
@@ -89,6 +83,7 @@ export async function POST(request) {
           mediaUrl = await uploadImageAsset(account.accessToken, account.authorUrn, image.buffer, image.type);
         }
         await Post.create({
+          ownerId,
           account: account._id,
           commentary: item.commentary,
           mediaUrl,

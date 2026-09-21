@@ -3,9 +3,12 @@ import { connectDB } from '@/lib/db';
 import Post from '@/lib/models/Post';
 import { createLinkedInPost } from '@/lib/linkedinService';
 import { publicError } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 export async function POST(request) {
   try {
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     const { ids, action } = await request.json();
 
     if (!Array.isArray(ids) || ids.length === 0) {
@@ -19,6 +22,7 @@ export async function POST(request) {
 
     if (action === 'delete') {
       const result = await Post.deleteMany({
+        ownerId,
         _id: { $in: ids },
         status: { $in: ['DRAFT', 'PENDING', 'FAILED'] },
       });
@@ -27,16 +31,17 @@ export async function POST(request) {
 
     if (action === 'publish') {
       const posts = await Post.find({
+        ownerId,
         _id: { $in: ids },
         status: 'PENDING',
-      }).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt' });
+      }).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt ownerId' });
 
       let published = 0;
       let failed = 0;
 
       for (const post of posts) {
         try {
-          if (!post.account || post.account.tokenExpiresAt <= new Date()) {
+          if (!post.account || post.account.ownerId !== ownerId || post.account.tokenExpiresAt <= new Date()) {
             post.status = 'FAILED';
             post.errorMessage = 'Access token expired';
             await post.save();

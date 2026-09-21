@@ -3,21 +3,24 @@ import { connectDB } from '@/lib/db';
 import Post from '@/lib/models/Post';
 import { createLinkedInPost } from '@/lib/linkedinService';
 import { isObjectId, publicError } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 export async function POST(request, { params }) {
+  const ownerId = await getOwnerId(request);
+  if (!ownerId) return unauthorized();
   try {
     const { id } = await params;
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
     await connectDB();
     const post = await Post.findOneAndUpdate(
-      { _id: id, status: 'PENDING' },
+      { _id: id, ownerId, status: 'PENDING' },
       { $set: { status: 'PROCESSING', errorMessage: null } },
       { new: true }
-    ).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt' });
+    ).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt ownerId' });
     if (!post) {
       return NextResponse.json({ error: 'Pending post not found or already being processed' }, { status: 409 });
     }
-    if (!post.account || post.account.tokenExpiresAt <= new Date()) {
+    if (!post.account || post.account.ownerId !== ownerId || post.account.tokenExpiresAt <= new Date()) {
       post.status = 'FAILED';
       post.errorMessage = 'Access token expired';
       await post.save();
@@ -41,7 +44,7 @@ export async function POST(request, { params }) {
     const { id } = await params;
     if (isObjectId(id)) {
       await Post.updateOne(
-        { _id: id, status: 'PROCESSING' },
+        { _id: id, ownerId, status: 'PROCESSING' },
         { $set: { status: 'FAILED', errorMessage: 'LinkedIn publish failed' } }
       ).catch(() => {});
     }

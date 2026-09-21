@@ -2,15 +2,18 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Post from '@/lib/models/Post';
 import { isObjectId, parseDate, publicError } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 const EDITABLE = new Set(['DRAFT', 'PENDING']);
 
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
     await connectDB();
-    const post = await Post.findById(id).populate('account', 'authorUrn displayName').lean();
+    const post = await Post.findOne({ _id: id, ownerId }).populate('account', 'authorUrn displayName').lean();
     if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     return NextResponse.json(post);
   } catch (error) {
@@ -21,9 +24,11 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
     await connectDB();
-    const post = await Post.findById(id);
+    const post = await Post.findOne({ _id: id, ownerId });
     if (!post) return NextResponse.json({ error: 'Post not found' }, { status: 404 });
     if (!EDITABLE.has(post.status)) {
       return NextResponse.json({ error: 'Only DRAFT or PENDING posts can be updated' }, { status: 400 });
@@ -53,9 +58,11 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
     await connectDB();
-    const post = await Post.findOneAndDelete({ _id: id, status: { $in: ['DRAFT', 'PENDING'] } });
+    const post = await Post.findOneAndDelete({ _id: id, ownerId, status: { $in: ['DRAFT', 'PENDING'] } });
     if (!post) {
       return NextResponse.json({ error: 'Editable post not found' }, { status: 404 });
     }

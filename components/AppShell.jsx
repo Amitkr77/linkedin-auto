@@ -1,10 +1,13 @@
 'use client';
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import styles from './AppShell.module.css';
 
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const pathname = usePathname();
+  if (pathname === '/sign-in') return children;
 
   return (
     <div className={styles.shell}>

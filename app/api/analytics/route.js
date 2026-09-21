@@ -4,21 +4,24 @@ import Post from '@/lib/models/Post';
 import Account from '@/lib/models/Account';
 import { fetchPostAnalytics } from '@/lib/linkedinAnalytics';
 import { publicError } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 // GET — return aggregated analytics data
-export async function GET() {
+export async function GET(request) {
   try {
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     await connectDB();
 
-    const published = await Post.find({ status: 'PUBLISHED' })
+    const published = await Post.find({ ownerId, status: 'PUBLISHED' })
       .sort({ createdAt: -1 })
       .populate('account', 'authorUrn displayName profilePictureUrl')
       .lean();
 
     const total = published.length;
-    const failed = await Post.countDocuments({ status: 'FAILED' });
-    const pending = await Post.countDocuments({ status: 'PENDING' });
-    const drafts = await Post.countDocuments({ status: 'DRAFT' });
+    const failed = await Post.countDocuments({ ownerId, status: 'FAILED' });
+    const pending = await Post.countDocuments({ ownerId, status: 'PENDING' });
+    const drafts = await Post.countDocuments({ ownerId, status: 'DRAFT' });
 
     // Aggregate engagement
     let totalLikes = 0, totalComments = 0, totalShares = 0, totalImpressions = 0;
@@ -50,18 +53,20 @@ export async function GET() {
 // POST — refresh analytics for all published posts (or specific IDs)
 export async function POST(request) {
   try {
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     const body = await request.json().catch(() => ({}));
     const postIds = body.postIds; // optional: refresh only specific posts
 
     await connectDB();
 
-    const query = { status: 'PUBLISHED', linkedinPostUrn: { $ne: null } };
+    const query = { ownerId, status: 'PUBLISHED', linkedinPostUrn: { $ne: null } };
     if (Array.isArray(postIds) && postIds.length > 0) {
       query._id = { $in: postIds };
     }
 
     const posts = await Post.find(query)
-      .populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt' });
+      .populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt ownerId' });
 
     // Skip stale-check: only refresh posts older than 5 minutes
     const FIVE_MINUTES = 5 * 60 * 1000;
@@ -77,7 +82,7 @@ export async function POST(request) {
         continue;
       }
 
-      if (!post.account || !post.account.accessToken) {
+      if (!post.account || post.account.ownerId !== ownerId || !post.account.accessToken) {
         skipped++;
         continue;
       }

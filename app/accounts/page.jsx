@@ -25,20 +25,6 @@ export default function AccountsPage() {
 
   useEffect(() => { fetchAccounts(); }, []);
 
-  const disconnect = async (id) => {
-    if (!confirm('Disconnect this account? Pending/draft posts for this account will be deleted.')) return;
-    try {
-      const res = await fetch(`/api/auth/accounts/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      addToast('success', 'Account disconnected.');
-      fetchAccounts();
-      window.dispatchEvent(new Event('linkedin-accounts-changed'));
-    } catch (err) {
-      addToast('error', err.message);
-    }
-  };
-
   const getTokenStatus = (expiresAt) => {
     const diff = new Date(expiresAt) - new Date();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -51,14 +37,8 @@ export default function AccountsPage() {
     <div>
       <div className="page-header">
         <h1>Accounts</h1>
-        <p>Manage your connected LinkedIn accounts.</p>
+        <p>Your LinkedIn sign-in and publishing account.</p>
       </div>
-
-      {!loading && accounts.length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <a href="/api/auth" className="btn btn-primary">+ Add Another Account</a>
-        </div>
-      )}
 
       {loading ? (
         <p style={{ color: 'var(--text-muted)' }}>Loading...</p>
@@ -72,7 +52,7 @@ export default function AccountsPage() {
             }
             title="No accounts connected"
             description="Connect your LinkedIn account to start scheduling posts."
-            action={<a href="/api/auth" className="btn btn-primary">Connect LinkedIn</a>}
+            action={<a href="/sign-in" className="btn btn-primary">Sign in with LinkedIn</a>}
           />
         </div>
       ) : (
@@ -126,9 +106,9 @@ export default function AccountsPage() {
                   </div>
                 </div>
 
-                <button className="btn btn-danger btn-sm" onClick={() => disconnect(acc._id)} style={{ marginTop: 16 }}>
-                  Disconnect
-                </button>
+                <p style={{ marginTop: 16, color: 'var(--text-muted)', fontSize: 13 }}>
+                  This account is linked to your current sign-in session.
+                </p>
               </div>
             );
           })}

@@ -2,13 +2,16 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Template from '@/lib/models/Template';
 import { isObjectId, publicError } from '@/lib/api';
+import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 export async function GET(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid template id' }, { status: 400 });
     await connectDB();
-    const template = await Template.findById(id).lean();
+    const template = await Template.findOne({ _id: id, ownerId }).lean();
     if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     return NextResponse.json(template);
   } catch (error) {
@@ -19,11 +22,13 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid template id' }, { status: 400 });
     const body = await request.json();
 
     await connectDB();
-    const template = await Template.findById(id);
+    const template = await Template.findOne({ _id: id, ownerId });
     if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
 
     if (body.name !== undefined) template.name = body.name.trim();
@@ -40,9 +45,11 @@ export async function PUT(request, { params }) {
 export async function DELETE(request, { params }) {
   try {
     const { id } = await params;
+    const ownerId = await getOwnerId(request);
+    if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid template id' }, { status: 400 });
     await connectDB();
-    const template = await Template.findByIdAndDelete(id);
+    const template = await Template.findOneAndDelete({ _id: id, ownerId });
     if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
     return NextResponse.json({ message: 'Template deleted' });
   } catch (error) {
