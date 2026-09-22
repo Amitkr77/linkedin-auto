@@ -62,7 +62,7 @@ export async function DELETE(request, { params }) {
     if (!ownerId) return unauthorized();
     if (!isObjectId(id)) return NextResponse.json({ error: 'Invalid post id' }, { status: 400 });
     await connectDB();
-    const post = await Post.findOneAndDelete({ _id: id, ownerId, status: { $in: ['DRAFT', 'PENDING'] } });
+    const post = await Post.findOneAndDelete({ _id: id, ownerId, status: { $in: ['DRAFT', 'PENDING', 'FAILED'] } });
     if (!post) {
       return NextResponse.json({ error: 'Editable post not found' }, { status: 404 });
     }

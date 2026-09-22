@@ -30,27 +30,17 @@ async function getRecentPosts(ownerId) {
     .lean();
 }
 
-export default async function Dashboard({ searchParams }) {
+export default async function Dashboard() {
   const session = await auth.api.getSession({ headers: await headers() });
   if (!session) redirect('/sign-in');
   await syncLinkedInAccount(session);
   const [stats, recentPosts] = await Promise.all([getStats(session.user.id), getRecentPosts(session.user.id)]);
-  const connected = (await searchParams)?.connected;
-  const authError = (await searchParams)?.error;
-
   return (
     <div>
       <div className="page-header">
         <h1>Dashboard</h1>
         <p>Overview of your LinkedIn automation engine</p>
       </div>
-
-      {connected && (
-        <div className="alert alert-success">Signed in with LinkedIn successfully!</div>
-      )}
-      {authError && (
-        <div className="alert alert-error">Authentication failed. Please try again.</div>
-      )}
 
       {/* Stats */}
       <div className={styles.statsGrid}>

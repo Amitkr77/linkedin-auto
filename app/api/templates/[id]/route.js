@@ -31,9 +31,10 @@ export async function PUT(request, { params }) {
     const template = await Template.findOne({ _id: id, ownerId });
     if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
 
-    if (body.name !== undefined) template.name = body.name.trim();
-    if (body.content !== undefined) template.content = body.content.trim();
-    if (body.category !== undefined) template.category = body.category.trim();
+    if (body.name !== undefined && typeof body.name === 'string') template.name = body.name.trim();
+    if (body.content !== undefined && typeof body.content === 'string') template.content = body.content.trim();
+    if (body.category !== undefined && typeof body.category === 'string') template.category = body.category.trim();
+    if (body.usageCount !== undefined && typeof body.usageCount === 'number') template.usageCount = body.usageCount;
     await template.save();
 
     return NextResponse.json(template);

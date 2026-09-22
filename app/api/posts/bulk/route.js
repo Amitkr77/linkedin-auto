@@ -61,6 +61,7 @@ export async function POST(request) {
 
           post.status = 'PUBLISHED';
           post.linkedinPostUrn = urn;
+          post.publishedAt = new Date();
           await post.save();
           published++;
         } catch {
