@@ -129,7 +129,7 @@ export default function AccountsPage() {
                 </div>
 
                 <p style={{ marginTop: 16, color: 'var(--text-muted)', fontSize: 13 }}>
-                  This publishing account is linked to your Google workspace account.
+                  This LinkedIn account is linked to your sign-in identity.
                 </p>
               </div>
             );

@@ -1,8 +1,12 @@
 'use client';
+import { useSearchParams } from 'next/navigation';
 import { signIn } from '@/lib/auth-client';
 import styles from './page.module.css';
 
 export default function SignInPage() {
+  const searchParams = useSearchParams();
+  const callbackURL = searchParams.get('callbackUrl') || '/';
+
   return (
     <main className={styles.page}>
       <div className={styles.container}>
@@ -44,7 +48,7 @@ export default function SignInPage() {
             className={`btn btn-primary ${styles.signInBtn}`}
             onClick={() => signIn.social({
               provider: 'google',
-              callbackURL: '/',
+              callbackURL,
               additionalParams: { prompt: 'select_account' },
             })}
           >
