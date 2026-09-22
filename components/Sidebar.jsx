@@ -80,23 +80,12 @@ export default function Sidebar({ isOpen, onToggle }) {
   async function handleSignOut() {
     if (isSigningOut) return;
     setIsSigningOut(true);
-    // LinkedIn does not expose an OAuth end-session endpoint. Opening its
-    // first-party logout page is required to prevent silent SSO on next login.
-    const linkedInLogoutWindow = window.open(
-      'https://www.linkedin.com/m/logout/',
-      'linkedin-sign-out',
-      'popup,width=520,height=680'
-    );
     try {
       const result = await signOut();
       if (result?.error) throw new Error(result.error.message || 'Sign out failed');
-      // Give LinkedIn enough time to clear its own browser session cookie.
-      await new Promise((resolve) => window.setTimeout(resolve, 2500));
-      if (linkedInLogoutWindow && !linkedInLogoutWindow.closed) linkedInLogoutWindow.close();
       // replace() prevents Back from reopening an authenticated page from history.
       window.location.replace('/sign-in?signedOut=1');
     } catch {
-      if (linkedInLogoutWindow && !linkedInLogoutWindow.closed) linkedInLogoutWindow.close();
       setIsSigningOut(false);
       window.alert('Sign out failed. Please try again.');
     }

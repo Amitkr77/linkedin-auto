@@ -1,8 +1,8 @@
 # LinkedIn Automation setup
 
-The application is multi-user. Each person signs in with LinkedIn, and their LinkedIn OAuth token, imported posts, templates, and analytics are stored under their own user ID. One user cannot select or publish through another user's LinkedIn account.
+The application is multi-user. Each person signs in to the platform with Google and then connects the LinkedIn account used for publishing. LinkedIn tokens, imported posts, templates, and analytics are stored under that Google user's ID. One user cannot select or publish through another user's LinkedIn account.
 
-## LinkedIn sign-in
+## Google sign-in and LinkedIn connection
 
 Create these environment variables locally and in Vercel:
 
@@ -10,6 +10,8 @@ Create these environment variables locally and in Vercel:
 MONGODB_URI=...
 LINKEDIN_CLIENT_ID=...
 LINKEDIN_CLIENT_SECRET=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
 BETTER_AUTH_SECRET=...
 BETTER_AUTH_URL=https://linkedin-auto-vwge.vercel.app
 LINKEDIN_VERSION=202601
@@ -18,6 +20,13 @@ CRON_SECRET=...
 
 Use `http://localhost:3000` for `BETTER_AUTH_URL` during local development. Generate `BETTER_AUTH_SECRET` and `CRON_SECRET` as separate random values with at least 32 characters. Do not use `NEXT_PUBLIC_` for either secret.
 
+In Google Cloud Console, create a Web application OAuth client. Add these authorized redirect URIs:
+
+```text
+http://localhost:3000/api/auth/callback/google
+https://linkedin-auto-vwge.vercel.app/api/auth/callback/google
+```
+
 Register these exact redirect URLs in the LinkedIn Developer Portal:
 
 ```text
@@ -25,7 +34,7 @@ http://localhost:3000/api/auth/callback/linkedin
 https://linkedin-auto-vwge.vercel.app/api/auth/callback/linkedin
 ```
 
-After changing Vercel environment variables, redeploy. A user clicks **Continue with LinkedIn**, authorizes the app, and returns to the dashboard. That same OAuth connection is used to publish that user's posts.
+After changing Vercel environment variables, redeploy. A user clicks **Continue with Google** to enter their private workspace. They then open **Accounts** and click **Connect LinkedIn** to authorize publishing. Signing out ends the Google-backed application session; it does not need to log the browser out of LinkedIn.
 
 ## Import CSV or Excel
 

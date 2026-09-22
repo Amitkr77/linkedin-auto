@@ -1,0 +1,187 @@
+.page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--surface-sunken);
+  padding: var(--space-6);
+}
+
+.container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: 960px;
+  width: 100%;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-card);
+}
+
+/* ─── Brand panel (left) ─── */
+.brandPanel {
+  background: var(--brand-navy);
+  padding: var(--space-12) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.brandEyebrow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--accent-sky);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-6);
+}
+
+.brandDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-sky);
+}
+
+.brandHeadline {
+  font-size: 40px;
+  line-height: 46px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--on-brand);
+  margin-bottom: var(--space-4);
+}
+
+.brandSub {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--on-brand-muted);
+  max-width: 380px;
+}
+
+/* Decorative tiles */
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--space-2);
+  margin-top: var(--space-8);
+  max-width: 200px;
+}
+
+.tile {
+  height: 28px;
+  border-radius: 6px;
+  opacity: 0.6;
+}
+.tile:nth-child(odd)  { background: var(--brand-blue); }
+.tile:nth-child(even) { background: var(--ink-muted); opacity: 0.3; }
+.tile:nth-child(3)    { background: var(--accent-sky); opacity: 0.7; }
+
+.brandFooter {
+  margin-top: auto;
+  padding-top: var(--space-8);
+  font-size: 13px;
+  line-height: 18px;
+  color: var(--on-brand-muted);
+}
+
+/* ─── Sign-in card (right) ─── */
+.signInPanel {
+  background: var(--surface);
+  padding: var(--space-12) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.signInEyebrow {
+  font-size: 13px;
+  line-height: 18px;
+  font-weight: 600;
+  color: var(--brand-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: var(--space-3);
+}
+
+.signInTitle {
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: var(--space-2);
+}
+
+.signInSub {
+  font-size: 16px;
+  line-height: 24px;
+  color: var(--ink-muted);
+  margin-bottom: var(--space-8);
+}
+
+.signInBtn {
+  width: 100%;
+  padding: 14px var(--space-6);
+  font-size: 16px;
+  line-height: 24px;
+  border-radius: var(--radius-md);
+}
+
+.helperBox {
+  margin-top: var(--space-6);
+  padding: var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  gap: var(--space-3);
+  align-items: flex-start;
+}
+
+.helperIcon {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  color: var(--ink-muted);
+  margin-top: 1px;
+}
+
+.helperText {
+  font-size: 14px;
+  line-height: 21px;
+  color: var(--ink-muted);
+}
+.helperText a {
+  color: var(--brand-blue);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .page { padding: 0; }
+  .container {
+    grid-template-columns: 1fr;
+    border-radius: 0;
+    max-width: 100%;
+    min-height: 100vh;
+    box-shadow: none;
+  }
+  .brandPanel {
+    padding: var(--space-8) var(--space-6);
+  }
+  .brandHeadline {
+    font-size: 28px;
+    line-height: 34px;
+  }
+  .tiles { display: none; }
+  .brandFooter { display: none; }
+  .signInPanel {
+    padding: var(--space-8) var(--space-6);
+  }
+}

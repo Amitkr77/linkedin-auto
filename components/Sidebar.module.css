@@ -4,8 +4,8 @@
   left: 0;
   bottom: 0;
   width: 240px;
-  background: var(--bg-sidebar);
-  border-right: 1px solid var(--border-color);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   z-index: 200;
@@ -16,9 +16,9 @@
 .brand {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 20px 20px 16px;
-  border-bottom: 1px solid var(--border-color);
+  gap: var(--space-3);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+  border-bottom: 1px solid var(--border);
 }
 
 .logo {
@@ -27,23 +27,23 @@
   justify-content: center;
   width: 36px;
   height: 36px;
-  background: var(--blue);
-  color: #fff;
-  border-radius: 10px;
+  background: var(--brand-blue);
+  color: var(--on-brand);
+  border-radius: var(--radius-sm);
   flex-shrink: 0;
 }
 
 .brandText {
   font-size: 16px;
   font-weight: 700;
-  color: var(--text-primary);
+  color: var(--ink);
   letter-spacing: -0.3px;
 }
 
 /* ─── Navigation ─── */
 .nav {
   flex: 1;
-  padding: 12px 10px;
+  padding: var(--space-3) 10px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -53,25 +53,25 @@
 .navLink {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 10px 12px;
-  border-radius: 8px;
-  color: var(--text-secondary);
+  gap: var(--space-3);
+  padding: 10px var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--ink-muted);
   font-size: 14px;
   font-weight: 500;
   transition: all 0.15s ease;
 }
 .navLink:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+  background: var(--surface-sunken);
+  color: var(--ink);
 }
 
 .active {
   background: var(--blue-light);
-  color: var(--blue);
+  color: var(--brand-blue);
   font-weight: 600;
 }
-.active .navIcon { color: var(--blue); }
+.active .navIcon { color: var(--brand-blue); }
 
 .navIcon {
   display: flex;
@@ -84,23 +84,27 @@
 
 /* ─── Footer ─── */
 .footer {
-  padding: 12px 10px 16px;
-  border-top: 1px solid var(--border-color);
+  padding: var(--space-3) 10px var(--space-4);
+  border-top: 1px solid var(--border);
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
 }
 
 .connectBtn {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  color: var(--blue);
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-sm);
+  color: var(--brand-blue);
   font-size: 13px;
   font-weight: 600;
   transition: background 0.15s;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-family: var(--sans);
 }
 .connectBtn:hover { background: var(--blue-light); }
 

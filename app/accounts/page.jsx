@@ -2,11 +2,13 @@
 import { useState, useEffect } from 'react';
 import { useToast } from '@/components/ToastProvider';
 import EmptyState from '@/components/EmptyState';
+import { linkSocial } from '@/lib/auth-client';
 import styles from './page.module.css';
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [connecting, setConnecting] = useState(false);
   const addToast = useToast();
 
   const fetchAccounts = async () => {
@@ -25,6 +27,21 @@ export default function AccountsPage() {
 
   useEffect(() => { fetchAccounts(); }, []);
 
+  const connectLinkedIn = async () => {
+    if (connecting) return;
+    setConnecting(true);
+    try {
+      const result = await linkSocial({
+        provider: 'linkedin',
+        callbackURL: '/accounts',
+      });
+      if (result?.error) throw new Error(result.error.message || 'Unable to connect LinkedIn');
+    } catch (error) {
+      setConnecting(false);
+      addToast('error', error.message);
+    }
+  };
+
   const getTokenStatus = (expiresAt) => {
     const diff = new Date(expiresAt) - new Date();
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
@@ -37,7 +54,12 @@ export default function AccountsPage() {
     <div>
       <div className="page-header">
         <h1>Accounts</h1>
-        <p>Your LinkedIn sign-in and publishing account.</p>
+        <p>Connect the LinkedIn account used to publish your scheduled posts.</p>
+        {accounts.length > 0 && (
+          <button className="btn btn-primary" onClick={connectLinkedIn} disabled={connecting} style={{ marginTop: 16 }}>
+            {connecting ? 'Connecting...' : 'Reconnect LinkedIn'}
+          </button>
+        )}
       </div>
 
       {loading ? (
@@ -52,7 +74,7 @@ export default function AccountsPage() {
             }
             title="No accounts connected"
             description="Connect your LinkedIn account to start scheduling posts."
-            action={<a href="/sign-in" className="btn btn-primary">Sign in with LinkedIn</a>}
+            action={<button className="btn btn-primary" onClick={connectLinkedIn} disabled={connecting}>Connect LinkedIn</button>}
           />
         </div>
       ) : (
@@ -107,7 +129,7 @@ export default function AccountsPage() {
                 </div>
 
                 <p style={{ marginTop: 16, color: 'var(--text-muted)', fontSize: 13 }}>
-                  This account is linked to your current sign-in session.
+                  This publishing account is linked to your Google workspace account.
                 </p>
               </div>
             );
