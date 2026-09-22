@@ -1,14 +1,14 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/ToastProvider';
 import EmptyState from '@/components/EmptyState';
-import { linkSocial } from '@/lib/auth-client';
 import styles from './page.module.css';
 
 export default function AccountsPage() {
   const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [connecting, setConnecting] = useState(false);
+  const searchParams = useSearchParams();
   const addToast = useToast();
 
   const fetchAccounts = async () => {
@@ -25,20 +25,26 @@ export default function AccountsPage() {
     }
   };
 
-  useEffect(() => { fetchAccounts(); }, []);
+  useEffect(() => {
+    fetchAccounts();
+    // Show success/error from LinkedIn OAuth redirect
+    if (searchParams.get('connected')) {
+      addToast('success', 'LinkedIn account connected!');
+    } else if (searchParams.get('error')) {
+      addToast('error', 'Failed to connect LinkedIn. Please try again.');
+    }
+  }, []);
 
-  const connectLinkedIn = async () => {
-    if (connecting) return;
-    setConnecting(true);
+  const disconnect = async (id) => {
+    if (!confirm('Disconnect this account? Pending/draft posts for this account will be deleted.')) return;
     try {
-      const result = await linkSocial({
-        provider: 'linkedin',
-        callbackURL: '/accounts',
-      });
-      if (result?.error) throw new Error(result.error.message || 'Unable to connect LinkedIn');
-    } catch (error) {
-      setConnecting(false);
-      addToast('error', error.message);
+      const res = await fetch(`/api/auth/accounts/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      addToast('success', 'Account disconnected.');
+      fetchAccounts();
+    } catch (err) {
+      addToast('error', err.message);
     }
   };
 
@@ -55,11 +61,12 @@ export default function AccountsPage() {
       <div className="page-header">
         <h1>Accounts</h1>
         <p>Connect the LinkedIn account used to publish your scheduled posts.</p>
-        {accounts.length > 0 && (
-          <button className="btn btn-primary" onClick={connectLinkedIn} disabled={connecting} style={{ marginTop: 16 }}>
-            {connecting ? 'Connecting...' : 'Reconnect LinkedIn'}
-          </button>
-        )}
+      </div>
+
+      <div style={{ marginBottom: 20 }}>
+        <a href="/api/auth/linkedin" className="btn btn-primary">
+          {accounts.length > 0 ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
+        </a>
       </div>
 
       {loading ? (
@@ -74,7 +81,7 @@ export default function AccountsPage() {
             }
             title="No accounts connected"
             description="Connect your LinkedIn account to start scheduling posts."
-            action={<button className="btn btn-primary" onClick={connectLinkedIn} disabled={connecting}>Connect LinkedIn</button>}
+            action={<a href="/api/auth/linkedin" className="btn btn-primary">Connect LinkedIn</a>}
           />
         </div>
       ) : (
@@ -94,22 +101,11 @@ export default function AccountsPage() {
                   <div className={styles.info}>
                     <h3>
                       {acc.displayName || 'LinkedIn User'}
-                      <span className={`${styles.typeBadge} ${acc.accountType === 'organization' ? styles.typeOrg : styles.typePerson}`}>
-                        {acc.accountType === 'organization' ? (
-                          <>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-                            </svg>
-                            Org
-                          </>
-                        ) : (
-                          <>
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                            </svg>
-                            Person
-                          </>
-                        )}
+                      <span className={`${styles.typeBadge} ${styles.typePerson}`}>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                        </svg>
+                        Person
                       </span>
                     </h3>
                     {acc.email && <p className={styles.email}>{acc.email}</p>}
@@ -128,9 +124,9 @@ export default function AccountsPage() {
                   </div>
                 </div>
 
-                <p style={{ marginTop: 16, color: 'var(--text-muted)', fontSize: 13 }}>
-                  This LinkedIn account is linked to your sign-in identity.
-                </p>
+                <button className="btn btn-danger btn-sm" onClick={() => disconnect(acc._id)} style={{ marginTop: 16 }}>
+                  Disconnect
+                </button>
               </div>
             );
           })}

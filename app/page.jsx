@@ -5,8 +5,6 @@ import Account from '@/lib/models/Account';
 import EmptyState from '@/components/EmptyState';
 import styles from './page.module.css';
 import { auth } from '@/lib/auth';
-import { syncLinkedInAccount } from '@/lib/currentUser';
-import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
 
 async function getStats(ownerId) {
@@ -31,10 +29,10 @@ async function getRecentPosts(ownerId) {
 }
 
 export default async function Dashboard() {
-  const session = await auth.api.getSession({ headers: await headers() });
-  if (!session) redirect('/sign-in');
-  await syncLinkedInAccount(session);
+  const session = await auth();
+  if (!session?.user?.id) redirect('/sign-in');
   const [stats, recentPosts] = await Promise.all([getStats(session.user.id), getRecentPosts(session.user.id)]);
+
   return (
     <div>
       <div className="page-header">
@@ -86,7 +84,7 @@ export default async function Dashboard() {
                   <div className={styles.postInfo}>
                     <p className={styles.commentary}>{post.commentary}</p>
                     <span className={styles.postTime}>
-                      {new Date(post.scheduledAt).toLocaleString()}
+                      {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString() : 'Draft'}
                     </span>
                   </div>
                   <span className={`badge badge-${post.status.toLowerCase()}`}>

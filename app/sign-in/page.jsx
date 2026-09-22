@@ -1,11 +1,11 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
-import { signIn } from '@/lib/auth-client';
+import { signIn } from 'next-auth/react';
 import styles from './page.module.css';
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
-  const callbackURL = searchParams.get('callbackUrl') || '/';
+  const callbackUrl = searchParams.get('callbackUrl') || '/';
 
   return (
     <main className={styles.page}>
@@ -29,8 +29,6 @@ export default function SignInPage() {
             <div className={styles.tile} />
             <div className={styles.tile} />
             <div className={styles.tile} />
-            <div className={styles.tile} />
-            <div className={styles.tile} />
           </div>
           <p className={styles.brandFooter}>
             Protected by Google and LinkedIn OAuth. Your credentials never touch our servers.
@@ -46,11 +44,7 @@ export default function SignInPage() {
           </p>
           <button
             className={`btn btn-primary ${styles.signInBtn}`}
-            onClick={() => signIn.social({
-              provider: 'google',
-              callbackURL,
-              additionalParams: { prompt: 'select_account' },
-            })}
+            onClick={() => signIn('google', { callbackUrl })}
           >
             Continue with Google
           </button>

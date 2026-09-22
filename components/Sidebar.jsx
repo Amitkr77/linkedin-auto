@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut, useSession } from '@/lib/auth-client';
+import { signOut, useSession } from 'next-auth/react';
 import ThemeToggle from './ThemeToggle';
 import styles from './Sidebar.module.css';
 
@@ -81,10 +81,7 @@ export default function Sidebar({ isOpen, onToggle }) {
     if (isSigningOut) return;
     setIsSigningOut(true);
     try {
-      const result = await signOut();
-      if (result?.error) throw new Error(result.error.message || 'Sign out failed');
-      // replace() prevents Back from reopening an authenticated page from history.
-      window.location.replace('/sign-in?signedOut=1');
+      await signOut({ callbackUrl: '/sign-in' });
     } catch {
       setIsSigningOut(false);
       window.alert('Sign out failed. Please try again.');
