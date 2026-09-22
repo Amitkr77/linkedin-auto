@@ -22,8 +22,7 @@ export default function SignInPage() {
           Continue with LinkedIn
         </button>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5, marginTop: 18 }}>
-          To use a different account, first sign out at linkedin.com or open this page in a private browser window.
-          LinkedIn may otherwise reuse the account already signed in to your browser.
+          Signing out here also signs this browser out of linkedin.com so that the next person must authenticate again.
         </p>
       </div>
     </main>
