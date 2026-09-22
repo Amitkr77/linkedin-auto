@@ -9,7 +9,16 @@ export default function SignInPage() {
         <p style={{ color: 'var(--text-muted)', marginBottom: 24 }}>
           Sign in with LinkedIn to schedule and manage your own posts.
         </p>
-        <button className="btn btn-primary" style={{ width: '100%' }} onClick={() => signIn.social({ provider: 'linkedin', callbackURL: '/' })}>
+        <button
+          className="btn btn-primary"
+          style={{ width: '100%' }}
+          onClick={() => signIn.social({
+            provider: 'linkedin',
+            callbackURL: '/',
+            // LinkedIn otherwise silently reuses its existing browser SSO session.
+            additionalParams: { prompt: 'login' },
+          })}
+        >
           Continue with LinkedIn
         </button>
         <p style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5, marginTop: 18 }}>
