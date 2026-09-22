@@ -1,28 +1,34 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import { auth } from '@/lib/auth';
 import { connectDB } from '@/lib/db';
 import Account from '@/lib/models/Account';
 
 export async function GET(request) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.redirect(new URL('/sign-in', request.url));
-  }
-
   const { searchParams } = new URL(request.url);
   const code = searchParams.get('code');
-  const state = searchParams.get('state');
-  const expectedState = request.cookies.get('linkedin_oauth_state')?.value;
+  const stateParam = searchParams.get('state');
+  const expectedNonce = request.cookies.get('linkedin_oauth_nonce')?.value;
 
-  if (!code || !state || !expectedState || state !== expectedState) {
-    const response = NextResponse.redirect(new URL('/accounts?error=auth_failed', request.url));
-    response.cookies.delete('linkedin_oauth_state');
-    return response;
+  // Parse state to get userId and nonce
+  let userId, nonce;
+  try {
+    const parsed = JSON.parse(Buffer.from(decodeURIComponent(stateParam), 'base64url').toString());
+    userId = parsed.userId;
+    nonce = parsed.nonce;
+  } catch {
+    console.error('[LINKEDIN CALLBACK] Failed to parse state');
+    return redirectError(request);
+  }
+
+  // Verify nonce matches
+  if (!code || !nonce || !expectedNonce || nonce !== expectedNonce || !userId) {
+    console.error('[LINKEDIN CALLBACK] State/nonce mismatch or missing code');
+    return redirectError(request);
   }
 
   try {
     // Exchange code for access token
+    console.log('[LINKEDIN CALLBACK] Exchanging code for token...');
     const tokenResponse = await axios.post(
       'https://www.linkedin.com/oauth/v2/accessToken',
       new URLSearchParams({
@@ -37,6 +43,7 @@ export async function GET(request) {
 
     const { access_token, expires_in } = tokenResponse.data;
     const tokenExpiresAt = new Date(Date.now() + expires_in * 1000);
+    console.log('[LINKEDIN CALLBACK] Token obtained, fetching profile...');
 
     // Fetch LinkedIn profile
     const profileResponse = await axios.get('https://api.linkedin.com/v2/userinfo', {
@@ -46,11 +53,12 @@ export async function GET(request) {
 
     const profile = profileResponse.data;
     const authorUrn = `urn:li:person:${profile.sub}`;
+    console.log(`[LINKEDIN CALLBACK] Profile fetched: ${authorUrn} (${profile.name})`);
 
-    // Store directly in the app's Mongoose Account model — no intermediary
+    // Store directly in Mongoose Account model — no intermediary, no bridge
     await connectDB();
     await Account.findOneAndUpdate(
-      { authorUrn, ownerId: session.user.id },
+      { authorUrn, ownerId: userId },
       {
         accessToken: access_token,
         tokenExpiresAt,
@@ -58,20 +66,24 @@ export async function GET(request) {
         displayName: profile.name || null,
         profilePictureUrl: profile.picture || null,
         email: profile.email || null,
-        ownerId: session.user.id,
+        ownerId: userId,
       },
       { upsert: true, new: true }
     );
 
-    console.log(`[LINKEDIN] Account ${authorUrn} connected for user ${session.user.id}`);
+    console.log(`[LINKEDIN CALLBACK] Account ${authorUrn} saved for user ${userId}`);
 
     const response = NextResponse.redirect(new URL('/accounts?connected=true', request.url));
-    response.cookies.delete('linkedin_oauth_state');
+    response.cookies.delete('linkedin_oauth_nonce');
     return response;
   } catch (error) {
-    console.error('LinkedIn OAuth callback failed:', error.response?.data || error.message);
-    const response = NextResponse.redirect(new URL('/accounts?error=auth_failed', request.url));
-    response.cookies.delete('linkedin_oauth_state');
-    return response;
+    console.error('[LINKEDIN CALLBACK] Failed:', error.response?.data || error.message);
+    return redirectError(request);
   }
+}
+
+function redirectError(request) {
+  const response = NextResponse.redirect(new URL('/accounts?error=auth_failed', request.url));
+  response.cookies.delete('linkedin_oauth_nonce');
+  return response;
 }
