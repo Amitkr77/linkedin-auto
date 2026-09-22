@@ -1,4 +1,5 @@
 'use client';
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { signOut, useSession } from '@/lib/auth-client';
@@ -74,6 +75,21 @@ const navLinks = [
 export default function Sidebar({ isOpen, onToggle }) {
   const pathname = usePathname();
   const { data: session } = useSession();
+  const [isSigningOut, setIsSigningOut] = useState(false);
+
+  async function handleSignOut() {
+    if (isSigningOut) return;
+    setIsSigningOut(true);
+    try {
+      const result = await signOut();
+      if (result?.error) throw new Error(result.error.message || 'Sign out failed');
+      // replace() prevents Back from reopening an authenticated page from history.
+      window.location.replace('/sign-in?signedOut=1');
+    } catch {
+      setIsSigningOut(false);
+      window.alert('Sign out failed. Please try again.');
+    }
+  }
 
   return (
     <>
@@ -111,8 +127,8 @@ export default function Sidebar({ isOpen, onToggle }) {
         <div className={styles.footer}>
           <ThemeToggle />
           {session?.user && <span className={styles.navLabel}>{session.user.name || session.user.email}</span>}
-          <button className={styles.connectBtn} onClick={() => signOut({ fetchOptions: { onSuccess: () => { window.location.href = '/sign-in'; } } })}>
-            <span>Sign Out</span>
+          <button className={styles.connectBtn} onClick={handleSignOut} disabled={isSigningOut}>
+            <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
           </button>
         </div>
       </aside>
