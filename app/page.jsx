@@ -4,6 +4,7 @@ import Post from '@/lib/models/Post';
 import Account from '@/lib/models/Account';
 import EmptyState from '@/components/EmptyState';
 import styles from './page.module.css';
+import LocalTime from '@/components/LocalTime';
 import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 
@@ -82,7 +83,7 @@ export default async function Dashboard() {
                   <div className={styles.postInfo}>
                     <p className={styles.commentary}>{post.commentary}</p>
                     <span className={styles.postTime}>
-                      {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString() : 'Draft'}
+                      <LocalTime date={post.scheduledAt} />
                     </span>
                   </div>
                   <span className={`badge badge-${post.status.toLowerCase()}`}>
