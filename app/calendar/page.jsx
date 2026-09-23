@@ -1,6 +1,7 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/components/ToastProvider';
+import LocalTime from '@/components/LocalTime';
 import styles from './page.module.css';
 
 const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -123,7 +124,7 @@ export default function CalendarPage() {
                     <span className={`badge badge-${p.status.toLowerCase()}`}>{p.status}</span>
                     <p className={styles.panelText}>{p.commentary}</p>
                     <span className={styles.panelTime}>
-                      {new Date(p.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                      <LocalTime date={p.scheduledAt} />
                     </span>
                   </div>
                 ))}

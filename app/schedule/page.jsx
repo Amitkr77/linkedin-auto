@@ -135,7 +135,7 @@ export default function SchedulePost() {
                 type="datetime-local"
                 value={form.scheduledAt}
                 onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
-                min={new Date().toISOString().slice(0, 16)}
+                min={(() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; })()}
               />
             </div>
 

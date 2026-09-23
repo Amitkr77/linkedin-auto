@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { useToast } from '@/components/ToastProvider';
+import LocalTime from '@/components/LocalTime';
 import EmptyState from '@/components/EmptyState';
 import styles from './page.module.css';
 
@@ -163,7 +164,7 @@ export default function AnalyticsPage() {
                     <p className={styles.commentary}>{post.commentary}</p>
                     <div className={styles.postMeta}>
                       <span>{post.account?.displayName || post.account?.authorUrn}</span>
-                      <span>{new Date(post.createdAt).toLocaleDateString()}</span>
+                      <LocalTime date={post.createdAt} />
                       {post.linkedinPostUrn && (
                         <span className={styles.urn}>{post.linkedinPostUrn}</span>
                       )}
@@ -197,9 +198,9 @@ export default function AnalyticsPage() {
 
         {posts.some((p) => p.analytics?.fetchedAt) && (
           <p className={styles.lastRefreshed}>
-            Last refreshed: {new Date(
+            Last refreshed: <LocalTime date={new Date(
               Math.max(...posts.filter((p) => p.analytics?.fetchedAt).map((p) => new Date(p.analytics.fetchedAt).getTime()))
-            ).toLocaleString()}
+            )} />
           </p>
         )}
       </div>

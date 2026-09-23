@@ -2,10 +2,18 @@
 import { useState } from 'react';
 import Modal from './Modal';
 
+// Format a Date as YYYY-MM-DDTHH:mm in the browser's local timezone
+function toLocalDatetimeValue(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
 export default function EditPostModal({ post, open, onClose, onSaved }) {
   const [commentary, setCommentary] = useState(post?.commentary || '');
   const [scheduledAt, setScheduledAt] = useState(
-    post?.scheduledAt ? new Date(post.scheduledAt).toISOString().slice(0, 16) : ''
+    toLocalDatetimeValue(post?.scheduledAt)
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -82,7 +90,7 @@ export default function EditPostModal({ post, open, onClose, onSaved }) {
           type="datetime-local"
           value={scheduledAt}
           onChange={(e) => setScheduledAt(e.target.value)}
-          min={new Date().toISOString().slice(0, 16)}
+          min={toLocalDatetimeValue(new Date())}
         />
         {post.status === 'DRAFT' && !scheduledAt && (
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>

@@ -1,8 +1,13 @@
 import { NextResponse } from 'next/server';
 
-// POST /api/auth/signout — clears session cookie
-export async function POST(request) {
+export async function POST() {
   const response = NextResponse.json({ ok: true });
-  response.cookies.set('session', '', { path: '/', maxAge: 0 });
+  response.cookies.set('session', '', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 0,
+  });
   return response;
 }

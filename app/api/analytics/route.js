@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Post from '@/lib/models/Post';
-import Account from '@/lib/models/Account';
 import { fetchPostAnalytics } from '@/lib/linkedinAnalytics';
 import { publicError } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';

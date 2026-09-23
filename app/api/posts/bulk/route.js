@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { connectDB } from '@/lib/db';
 import Post from '@/lib/models/Post';
 import { createLinkedInPost } from '@/lib/linkedinService';
-import { publicError } from '@/lib/api';
+import { isObjectId, publicError } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
 
 export async function POST(request) {
@@ -16,6 +16,9 @@ export async function POST(request) {
     }
     if (ids.length > 50) {
       return NextResponse.json({ error: 'Maximum 50 posts per bulk action' }, { status: 400 });
+    }
+    if (!ids.every(isObjectId)) {
+      return NextResponse.json({ error: 'Invalid post ID in selection' }, { status: 400 });
     }
 
     await connectDB();

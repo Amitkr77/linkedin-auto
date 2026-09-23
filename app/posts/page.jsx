@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useToast } from '@/components/ToastProvider';
 import { PostListSkeleton } from '@/components/Skeleton';
 import EmptyState from '@/components/EmptyState';
+import LocalTime from '@/components/LocalTime';
 import EditPostModal from '@/components/EditPostModal';
 import BulkToolbar from '@/components/BulkToolbar';
 import ImportModal from '@/components/ImportModal';
@@ -219,7 +220,7 @@ export default function PostsPage() {
                     </span>
                   )}
                   <span className={styles.time}>
-                    {post.scheduledAt ? new Date(post.scheduledAt).toLocaleString() : 'Not scheduled'}
+                    <LocalTime date={post.scheduledAt} />
                   </span>
                 </div>
 
