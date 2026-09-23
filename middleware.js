@@ -1,13 +1,10 @@
 import { NextResponse } from 'next/server';
-import { getToken } from 'next-auth/jwt';
+import { getSessionFromRequest } from '@/lib/session';
 
 export async function middleware(request) {
-  // getToken reads the NextAuth JWT cookie without importing Mongoose
-  const token = await getToken({ req: request, secret: process.env.AUTH_SECRET });
-  if (!token) {
-    const signIn = new URL('/sign-in', request.url);
-    signIn.searchParams.set('callbackUrl', request.nextUrl.pathname);
-    return NextResponse.redirect(signIn);
+  const session = await getSessionFromRequest(request);
+  if (!session) {
+    return NextResponse.redirect(new URL('/sign-in', request.url));
   }
   return NextResponse.next();
 }

@@ -2,7 +2,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
 import ThemeToggle from './ThemeToggle';
 import styles from './Sidebar.module.css';
 
@@ -74,27 +73,25 @@ const navLinks = [
 
 export default function Sidebar({ isOpen, onToggle }) {
   const pathname = usePathname();
-  const { data: session } = useSession();
-  const [isSigningOut, setIsSigningOut] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  async function handleSignOut() {
-    if (isSigningOut) return;
-    setIsSigningOut(true);
+  const handleSignOut = async () => {
+    if (signingOut) return;
+    setSigningOut(true);
     try {
-      await signOut({ callbackUrl: '/sign-in' });
+      await fetch('/api/auth/signout', { method: 'POST' });
+      window.location.replace('/sign-in');
     } catch {
-      setIsSigningOut(false);
+      setSigningOut(false);
       window.alert('Sign out failed. Please try again.');
     }
-  }
+  };
 
   return (
     <>
-      {/* Mobile overlay */}
       {isOpen && <div className={styles.overlay} onClick={onToggle} />}
 
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
-        {/* Brand */}
         <div className={styles.brand}>
           <div className={styles.logo}>
             <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
@@ -105,7 +102,6 @@ export default function Sidebar({ isOpen, onToggle }) {
           <span className={styles.brandText}>LinkedIn Auto</span>
         </div>
 
-        {/* Navigation */}
         <nav className={styles.nav}>
           {navLinks.map(({ href, label, icon }) => (
             <Link
@@ -120,12 +116,10 @@ export default function Sidebar({ isOpen, onToggle }) {
           ))}
         </nav>
 
-        {/* Footer */}
         <div className={styles.footer}>
           <ThemeToggle />
-          {session?.user && <span className={styles.navLabel}>{session.user.name || session.user.email}</span>}
-          <button className={styles.connectBtn} onClick={handleSignOut} disabled={isSigningOut}>
-            <span>{isSigningOut ? 'Signing Out...' : 'Sign Out'}</span>
+          <button className={styles.connectBtn} onClick={handleSignOut} disabled={signingOut}>
+            {signingOut ? 'Signing out...' : 'Sign out'}
           </button>
         </div>
       </aside>

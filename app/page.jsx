@@ -4,7 +4,7 @@ import Post from '@/lib/models/Post';
 import Account from '@/lib/models/Account';
 import EmptyState from '@/components/EmptyState';
 import styles from './page.module.css';
-import { auth } from '@/lib/auth';
+import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 
 async function getStats(ownerId) {
@@ -29,18 +29,18 @@ async function getRecentPosts(ownerId) {
 }
 
 export default async function Dashboard() {
-  const session = await auth();
-  if (!session?.user?.id) redirect('/sign-in');
-  const [stats, recentPosts] = await Promise.all([getStats(session.user.id), getRecentPosts(session.user.id)]);
+  const session = await getSession();
+  if (!session?.userId) redirect('/sign-in');
+  const ownerId = session.userId;
+  const [stats, recentPosts] = await Promise.all([getStats(ownerId), getRecentPosts(ownerId)]);
 
   return (
     <div>
       <div className="page-header">
         <h1>Dashboard</h1>
-        <p>Overview of your LinkedIn automation engine</p>
+        <p>Welcome back, {session.name || 'there'}.</p>
       </div>
 
-      {/* Stats */}
       <div className={styles.statsGrid}>
         {[
           { value: stats.accounts, label: 'Accounts', cls: '' },
@@ -56,13 +56,11 @@ export default async function Dashboard() {
         ))}
       </div>
 
-      {/* Quick actions */}
       <div className={styles.actions}>
         <Link href="/schedule" className="btn btn-primary">+ Create Post</Link>
-        <Link href="/accounts" className="btn btn-outline">LinkedIn Account</Link>
+        <Link href="/accounts" className="btn btn-outline">Account</Link>
       </div>
 
-      {/* Recent posts */}
       <div className="card" style={{ marginTop: 24 }}>
         <h2 className={styles.sectionTitle}>Recent Posts</h2>
         {recentPosts.length === 0 ? (

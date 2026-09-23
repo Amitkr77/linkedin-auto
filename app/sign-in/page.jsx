@@ -1,11 +1,10 @@
 'use client';
 import { useSearchParams } from 'next/navigation';
-import { signIn } from 'next-auth/react';
 import styles from './page.module.css';
 
 export default function SignInPage() {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get('callbackUrl') || '/';
+  const error = searchParams.get('error');
 
   return (
     <main className={styles.page}>
@@ -31,7 +30,7 @@ export default function SignInPage() {
             <div className={styles.tile} />
           </div>
           <p className={styles.brandFooter}>
-            Protected by Google and LinkedIn OAuth. Your credentials never touch our servers.
+            Protected by LinkedIn OAuth. Your credentials never touch our servers.
           </p>
         </div>
 
@@ -40,20 +39,27 @@ export default function SignInPage() {
           <span className={styles.signInEyebrow}>Sign in</span>
           <h2 className={styles.signInTitle}>Welcome back</h2>
           <p className={styles.signInSub}>
-            Sign in with Google to access your workspace and manage your scheduled posts.
+            Sign in with LinkedIn to schedule and manage your posts.
           </p>
-          <button
+          {error && (
+            <div className="alert alert-error" style={{ marginBottom: 16 }}>
+              Sign-in failed. Please try again.
+            </div>
+          )}
+          <a
+            href="/api/auth/signin"
             className={`btn btn-primary ${styles.signInBtn}`}
-            onClick={() => signIn('google', { callbackUrl })}
           >
-            Continue with Google
-          </button>
+            Continue with LinkedIn
+          </a>
           <div className={styles.helperBox}>
             <svg className={styles.helperIcon} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <circle cx="12" cy="12" r="10" /><line x1="12" y1="16" x2="12" y2="12" /><line x1="12" y1="8" x2="12.01" y2="8" />
             </svg>
             <p className={styles.helperText}>
-              After signing in, connect the LinkedIn account you want to publish from on the Accounts page.
+              To use a different account, first sign out at{' '}
+              <a href="https://www.linkedin.com" target="_blank" rel="noopener noreferrer">linkedin.com</a>{' '}
+              or open this page in a private window.
             </p>
           </div>
         </div>

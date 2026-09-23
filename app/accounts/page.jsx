@@ -11,42 +11,19 @@ export default function AccountsPage() {
   const searchParams = useSearchParams();
   const addToast = useToast();
 
-  const fetchAccounts = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/auth/accounts');
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setAccounts(data);
-    } catch (err) {
-      addToast('error', err.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchAccounts();
-    // Show success/error from LinkedIn OAuth redirect
-    if (searchParams.get('connected')) {
-      addToast('success', 'LinkedIn account connected!');
-    } else if (searchParams.get('error')) {
-      addToast('error', 'Failed to connect LinkedIn. Please try again.');
-    }
-  }, []);
+    fetch('/api/auth/accounts')
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        setAccounts(data);
+      })
+      .catch((err) => addToast('error', err.message))
+      .finally(() => setLoading(false));
 
-  const disconnect = async (id) => {
-    if (!confirm('Disconnect this account? Pending/draft posts for this account will be deleted.')) return;
-    try {
-      const res = await fetch(`/api/auth/accounts/${id}`, { method: 'DELETE' });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      addToast('success', 'Account disconnected.');
-      fetchAccounts();
-    } catch (err) {
-      addToast('error', err.message);
-    }
-  };
+    if (searchParams.get('connected')) addToast('success', 'LinkedIn account connected!');
+    if (searchParams.get('error')) addToast('error', 'Failed to connect LinkedIn.');
+  }, []);
 
   const getTokenStatus = (expiresAt) => {
     const diff = new Date(expiresAt) - new Date();
@@ -60,12 +37,12 @@ export default function AccountsPage() {
     <div>
       <div className="page-header">
         <h1>Accounts</h1>
-        <p>Connect the LinkedIn account used to publish your scheduled posts.</p>
+        <p>Your LinkedIn account is connected automatically when you sign in.</p>
       </div>
 
       <div style={{ marginBottom: 20 }}>
-        <a href="/api/auth/linkedin" className="btn btn-primary">
-          {accounts.length > 0 ? 'Reconnect LinkedIn' : 'Connect LinkedIn'}
+        <a href="/api/auth/signin" className="btn btn-outline">
+          Reconnect LinkedIn (refresh token)
         </a>
       </div>
 
@@ -79,9 +56,9 @@ export default function AccountsPage() {
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
               </svg>
             }
-            title="No accounts connected"
-            description="Connect your LinkedIn account to start scheduling posts."
-            action={<a href="/api/auth/linkedin" className="btn btn-primary">Connect LinkedIn</a>}
+            title="No account found"
+            description="Sign in again to reconnect your LinkedIn account."
+            action={<a href="/api/auth/signin" className="btn btn-primary">Sign in with LinkedIn</a>}
           />
         </div>
       ) : (
@@ -95,19 +72,11 @@ export default function AccountsPage() {
                     {acc.profilePictureUrl ? (
                       <img src={acc.profilePictureUrl} alt="" />
                     ) : (
-                      <span>{(acc.displayName || acc.authorUrn)?.[0]?.toUpperCase() || '?'}</span>
+                      <span>{(acc.displayName || '?')[0].toUpperCase()}</span>
                     )}
                   </div>
                   <div className={styles.info}>
-                    <h3>
-                      {acc.displayName || 'LinkedIn User'}
-                      <span className={`${styles.typeBadge} ${styles.typePerson}`}>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-                          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
-                        </svg>
-                        Person
-                      </span>
-                    </h3>
+                    <h3>{acc.displayName || 'LinkedIn User'}</h3>
                     {acc.email && <p className={styles.email}>{acc.email}</p>}
                     <p className={styles.urn}>{acc.authorUrn}</p>
                   </div>
@@ -123,10 +92,6 @@ export default function AccountsPage() {
                     <span>{new Date(acc.createdAt).toLocaleDateString()}</span>
                   </div>
                 </div>
-
-                <button className="btn btn-danger btn-sm" onClick={() => disconnect(acc._id)} style={{ marginTop: 16 }}>
-                  Disconnect
-                </button>
               </div>
             );
           })}

@@ -1,5 +1,4 @@
 import './globals.css';
-import AuthSessionProvider from '@/components/SessionProvider';
 import ThemeProvider from '@/components/ThemeProvider';
 import ToastProvider from '@/components/ToastProvider';
 import AppShell from '@/components/AppShell';
@@ -13,15 +12,13 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <AuthSessionProvider>
-          <ThemeProvider>
-            <ToastProvider>
-              <AppShell>
-                {children}
-              </AppShell>
-            </ToastProvider>
-          </ThemeProvider>
-        </AuthSessionProvider>
+        <ThemeProvider>
+          <ToastProvider>
+            <AppShell>
+              {children}
+            </AppShell>
+          </ToastProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

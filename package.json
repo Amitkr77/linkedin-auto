@@ -15,10 +15,10 @@
     "axios-retry": "^4.4.0",
     "dotenv": "^17.4.2",
     "exceljs": "^4.4.0",
+    "jose": "^6.2.12",
     "mongoose": "^8.5.0",
     "multer": "^2.0.0",
     "next": "^15.3.3",
-    "next-auth": "^5.0.0-beta.32",
     "node-cron": "^3.0.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
