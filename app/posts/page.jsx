@@ -92,6 +92,20 @@ export default function PostsPage() {
   };
 
   // Bulk selection
+  const duplicate = async (id) => {
+    setActionId(id);
+    try {
+      const res = await fetch(`/api/posts/${id}/duplicate`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to duplicate');
+      addToast('success', 'Post duplicated as draft.');
+      fetchPosts();
+    } catch (err) {
+      addToast('error', err.message);
+    }
+    setActionId(null);
+  };
+
   const toggleSelect = (id) => {
     setSelected((prev) => {
       const next = new Set(prev);
@@ -168,6 +182,12 @@ export default function PostsPage() {
             </svg>
             Import CSV / Excel
           </button>
+          <a href="/api/posts/export" className="btn btn-outline btn-sm" download>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export
+          </a>
           {selectablePosts.length > 0 && (
             <button className="btn btn-ghost btn-sm" onClick={toggleAll}>
               {selected.size === selectablePosts.length ? 'Deselect All' : 'Select All'}
@@ -281,6 +301,12 @@ export default function PostsPage() {
                       </button>
                     </>
                   )}
+                  <button className="btn btn-ghost btn-sm" onClick={() => duplicate(post._id)} disabled={actionId === post._id}>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                      <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
+                    </svg>
+                    Duplicate
+                  </button>
                 </div>
               </div>
             );

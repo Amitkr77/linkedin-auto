@@ -17,6 +17,7 @@ export default function CalendarPage() {
   const [current, setCurrent] = useState(new Date());
   const [posts, setPosts] = useState([]);
   const [selectedDay, setSelectedDay] = useState(null);
+  const [dropTarget, setDropTarget] = useState(null);
   const addToast = useToast();
 
   const fetchPosts = useCallback(async () => {
@@ -54,16 +55,63 @@ export default function CalendarPage() {
 
   const dayPosts = selectedDay ? (postsByDay[selectedDay] || []) : [];
 
+  // Drag-and-drop handlers
+  const handleDragStart = (e, postId) => {
+    e.dataTransfer.setData('text/plain', postId);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleDragOver = (e, day) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDropTarget(day);
+  };
+
+  const handleDragLeave = () => {
+    setDropTarget(null);
+  };
+
+  const handleDrop = async (e, targetDay) => {
+    e.preventDefault();
+    setDropTarget(null);
+    const postId = e.dataTransfer.getData('text/plain');
+    if (!postId) return;
+
+    const post = posts.find((p) => p._id === postId);
+    if (!post) return;
+    if (!['DRAFT', 'PENDING'].includes(post.status)) {
+      addToast('error', 'Only draft or pending posts can be rescheduled.');
+      return;
+    }
+
+    // Keep the original time, just change the date
+    const oldDate = post.scheduledAt ? new Date(post.scheduledAt) : new Date();
+    const newDate = new Date(year, month, targetDay, oldDate.getHours(), oldDate.getMinutes());
+
+    try {
+      const res = await fetch(`/api/posts/${postId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ scheduledAt: newDate.toISOString() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Unable to reschedule');
+      addToast('success', `Post moved to ${DAYS[newDate.getDay()]} ${targetDay}`);
+      fetchPosts();
+    } catch (err) {
+      addToast('error', err.message);
+    }
+  };
+
   return (
     <div>
       <div className="page-header">
         <h1>Calendar</h1>
-        <p>Visual overview of your scheduled posts.</p>
+        <p>Drag and drop posts between days to reschedule.</p>
       </div>
 
       <div className={styles.layout}>
         <div className="card">
-          {/* Calendar nav */}
           <div className={styles.calNav}>
             <button className="btn btn-ghost btn-sm" onClick={prev}>&larr;</button>
             <h2 className={styles.monthTitle}>
@@ -73,32 +121,40 @@ export default function CalendarPage() {
             <button className="btn btn-ghost btn-sm" onClick={next}>&rarr;</button>
           </div>
 
-          {/* Day headers */}
           <div className={styles.grid}>
             {DAYS.map((d) => (
               <div key={d} className={styles.dayHeader}>{d}</div>
             ))}
-            {/* Empty cells for offset */}
             {Array.from({ length: firstDay }).map((_, i) => (
               <div key={`e${i}`} className={styles.cell} />
             ))}
-            {/* Day cells */}
             {Array.from({ length: daysInMonth }).map((_, i) => {
               const day = i + 1;
               const isToday = today.getFullYear() === year && today.getMonth() === month && today.getDate() === day;
               const dayItems = postsByDay[day] || [];
               const isSelected = selectedDay === day;
+              const isDragOver = dropTarget === day;
               return (
                 <div
                   key={day}
-                  className={`${styles.cell} ${isToday ? styles.today : ''} ${isSelected ? styles.selected : ''} ${dayItems.length ? styles.hasItems : ''}`}
+                  className={`${styles.cell} ${isToday ? styles.today : ''} ${isSelected ? styles.selected : ''} ${dayItems.length ? styles.hasItems : ''} ${isDragOver ? styles.dropTarget : ''}`}
                   onClick={() => setSelectedDay(day === selectedDay ? null : day)}
+                  onDragOver={(e) => handleDragOver(e, day)}
+                  onDragLeave={handleDragLeave}
+                  onDrop={(e) => handleDrop(e, day)}
                 >
                   <span className={styles.dayNum}>{day}</span>
                   {dayItems.length > 0 && (
                     <div className={styles.dots}>
                       {dayItems.slice(0, 3).map((p) => (
-                        <span key={p._id} className={`${styles.dot} ${styles[`dot_${p.status.toLowerCase()}`]}`} />
+                        <span
+                          key={p._id}
+                          className={`${styles.dot} ${styles[`dot_${p.status.toLowerCase()}`]}`}
+                          draggable={p.status === 'DRAFT' || p.status === 'PENDING'}
+                          onDragStart={(e) => handleDragStart(e, p._id)}
+                          title={p.commentary.slice(0, 60)}
+                          style={{ cursor: (p.status === 'DRAFT' || p.status === 'PENDING') ? 'grab' : 'default' }}
+                        />
                       ))}
                       {dayItems.length > 3 && <span className={styles.dotMore}>+{dayItems.length - 3}</span>}
                     </div>
@@ -120,7 +176,13 @@ export default function CalendarPage() {
             ) : (
               <div className={styles.panelList}>
                 {dayPosts.map((p) => (
-                  <div key={p._id} className={styles.panelItem}>
+                  <div
+                    key={p._id}
+                    className={styles.panelItem}
+                    draggable={p.status === 'DRAFT' || p.status === 'PENDING'}
+                    onDragStart={(e) => handleDragStart(e, p._id)}
+                    style={{ cursor: (p.status === 'DRAFT' || p.status === 'PENDING') ? 'grab' : 'default' }}
+                  >
                     <span className={`badge badge-${p.status.toLowerCase()}`}>{p.status}</span>
                     <p className={styles.panelText}>{p.commentary}</p>
                     <span className={styles.panelTime}>

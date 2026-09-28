@@ -58,6 +58,12 @@
 
 .hasItems { cursor: pointer; }
 
+.dropTarget {
+  background: var(--blue-light);
+  border-color: var(--blue);
+  border-style: dashed;
+}
+
 .dayNum {
   font-size: 13px;
   font-weight: 500;

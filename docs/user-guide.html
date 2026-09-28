@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LinkedIn Automation — User Guide</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    color: #14181f;
+    background: #fff;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+
+  @page { margin: 0.8in 0.7in; size: A4; }
+  @media print {
+    body { font-size: 13px; }
+    .cover { page-break-after: always; }
+    .section { page-break-inside: avoid; }
+    .no-print { display: none !important; }
+  }
+
+  /* ─── Cover ─── */
+  .cover {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    background: #0b1f3a;
+    color: #fff;
+    padding: 80px 60px;
+    position: relative;
+    overflow: hidden;
+  }
+  .cover::after {
+    content: '';
+    position: absolute;
+    top: -100px;
+    right: -100px;
+    width: 400px;
+    height: 400px;
+    background: #0a66c2;
+    border-radius: 50%;
+    opacity: 0.15;
+  }
+  .cover-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: #70b5f9;
+    margin-bottom: 24px;
+  }
+  .cover-badge::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    background: #70b5f9;
+    border-radius: 50%;
+  }
+  .cover h1 {
+    font-size: 48px;
+    line-height: 1.1;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    max-width: 560px;
+    margin-bottom: 20px;
+  }
+  .cover p {
+    font-size: 18px;
+    color: rgba(255,255,255,0.72);
+    max-width: 480px;
+    margin-bottom: 40px;
+  }
+  .cover-meta {
+    font-size: 13px;
+    color: rgba(255,255,255,0.5);
+    margin-top: auto;
+    padding-top: 60px;
+  }
+
+  /* ─── Content ─── */
+  .content { max-width: 720px; margin: 0 auto; padding: 60px 40px; }
+
+  h2 {
+    font-size: 28px;
+    font-weight: 800;
+    color: #0b1f3a;
+    margin: 48px 0 16px;
+    letter-spacing: -0.01em;
+    border-bottom: 3px solid #0a66c2;
+    padding-bottom: 8px;
+    display: inline-block;
+  }
+  h2:first-child { margin-top: 0; }
+
+  h3 {
+    font-size: 18px;
+    font-weight: 700;
+    color: #0b1f3a;
+    margin: 32px 0 12px;
+  }
+
+  p { margin-bottom: 14px; }
+
+  /* ─── Steps ─── */
+  .steps { counter-reset: step; list-style: none; padding: 0; margin: 20px 0; }
+  .steps li {
+    counter-increment: step;
+    position: relative;
+    padding: 16px 16px 16px 64px;
+    margin-bottom: 12px;
+    background: #f4f5f7;
+    border-radius: 12px;
+    border-left: 4px solid #0a66c2;
+  }
+  .steps li::before {
+    content: counter(step);
+    position: absolute;
+    left: 16px;
+    top: 16px;
+    width: 32px;
+    height: 32px;
+    background: #0a66c2;
+    color: #fff;
+    font-weight: 700;
+    font-size: 15px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .steps li strong { color: #0b1f3a; }
+
+  /* ─── Feature grid ─── */
+  .features {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .feature {
+    background: #f4f5f7;
+    border-radius: 12px;
+    padding: 20px;
+  }
+  .feature-icon {
+    width: 40px;
+    height: 40px;
+    background: #0a66c2;
+    color: #fff;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    margin-bottom: 12px;
+  }
+  .feature h4 {
+    font-size: 15px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: #0b1f3a;
+  }
+  .feature p {
+    font-size: 13px;
+    color: #5b6472;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* ─── Table ─── */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0 24px;
+    font-size: 13px;
+  }
+  th {
+    background: #0b1f3a;
+    color: #fff;
+    text-align: left;
+    padding: 10px 14px;
+    font-weight: 600;
+  }
+  th:first-child { border-radius: 8px 0 0 0; }
+  th:last-child { border-radius: 0 8px 0 0; }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid #e2e5ea;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: #f9fafb; }
+
+  /* ─── Callout ─── */
+  .callout {
+    background: #e8f0fb;
+    border-left: 4px solid #0a66c2;
+    padding: 16px 20px;
+    border-radius: 0 10px 10px 0;
+    margin: 20px 0;
+    font-size: 14px;
+  }
+  .callout strong { color: #0a66c2; }
+
+  .callout-warn {
+    background: #fef9c3;
+    border-left-color: #d68910;
+  }
+  .callout-warn strong { color: #854d0e; }
+
+  /* ─── Code ─── */
+  code {
+    font-family: 'Cascadia Code', 'Fira Code', monospace;
+    background: #f4f5f7;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    color: #0a66c2;
+  }
+
+  /* ─── Divider ─── */
+  hr {
+    border: none;
+    height: 1px;
+    background: #e2e5ea;
+    margin: 40px 0;
+  }
+
+  /* ─── Footer ─── */
+  .footer {
+    text-align: center;
+    padding: 40px;
+    color: #5b6472;
+    font-size: 13px;
+    border-top: 1px solid #e2e5ea;
+    margin-top: 48px;
+  }
+
+  /* ─── Flow diagram (ASCII-style) ─── */
+  .flow {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin: 24px 0;
+    flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #0b1f3a;
+    color: #fff;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+  }
+  .flow-arrow {
+    font-size: 20px;
+    color: #0a66c2;
+    padding: 0 8px;
+    font-weight: 700;
+  }
+
+  /* ─── Status badges ─── */
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-draft { background: #e8f0fb; color: #0a66c2; }
+  .badge-pending { background: #fef9c3; color: #854d0e; }
+  .badge-published { background: #dcfce7; color: #057642; }
+  .badge-failed { background: #fee2e2; color: #c0392b; }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- COVER PAGE                                  -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-badge">User Guide</div>
+  <h1>LinkedIn Automation</h1>
+  <p>Schedule, publish and manage your LinkedIn content on autopilot. This guide walks you through everything you need to get started.</p>
+  <div class="cover-meta">
+    Version 1.0 &nbsp;&middot;&nbsp; Last updated: September 2026
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- CONTENT                                     -->
+<!-- ═══════════════════════════════════════════ -->
+<div class="content">
+
+  <!-- ─── OVERVIEW ─── -->
+  <h2>What is LinkedIn Automation?</h2>
+  <p>LinkedIn Automation is a web app that lets you <strong>draft, schedule, and auto-publish</strong> LinkedIn posts from a single dashboard. Write your posts in advance, pick a date and time, and the system publishes them to your LinkedIn feed automatically — even when you're not online.</p>
+
+  <div class="features">
+    <div class="feature">
+      <div class="feature-icon">&#x1F4DD;</div>
+      <h4>Schedule Posts</h4>
+      <p>Write content, attach images, and schedule for any future date and time.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">&#x1F4CA;</div>
+      <h4>Analytics</h4>
+      <p>Track engagement — likes, comments, shares — across all your published posts.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">&#x1F4C5;</div>
+      <h4>Calendar View</h4>
+      <p>See your entire posting schedule at a glance with a visual calendar.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">&#x1F4E5;</div>
+      <h4>CSV / Excel Import</h4>
+      <p>Bulk import posts from a spreadsheet — up to 100 posts at once.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">&#x1F4C4;</div>
+      <h4>Templates</h4>
+      <p>Save and reuse post templates for consistent content creation.</p>
+    </div>
+    <div class="feature">
+      <div class="feature-icon">&#x1F465;</div>
+      <h4>Multi-User</h4>
+      <p>Each person signs in with their own LinkedIn account. Data is fully isolated.</p>
+    </div>
+  </div>
+
+  <hr>
+
+  <!-- ─── HOW IT WORKS ─── -->
+  <h2>How it works</h2>
+  <p>The entire system works in a simple loop:</p>
+
+  <div class="flow">
+    <div class="flow-step">Sign in with LinkedIn</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">Create / schedule posts</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">Auto-publish at scheduled time</div>
+    <span class="flow-arrow">&rarr;</span>
+    <div class="flow-step">Track results</div>
+  </div>
+
+  <p>A background scheduler checks every ~60 seconds for posts that are due. When your post's scheduled time arrives, the system publishes it directly to your LinkedIn feed using your authorized access token. You don't need to be online.</p>
+
+  <hr>
+
+  <!-- ─── GETTING STARTED ─── -->
+  <h2>Getting started</h2>
+
+  <h3>Step 1: Sign in</h3>
+  <ol class="steps">
+    <li>Open the app and click <strong>"Continue with LinkedIn"</strong> on the sign-in screen.</li>
+    <li>Enter your LinkedIn email and password on LinkedIn's official login page.</li>
+    <li>Authorize the app to access your profile and post on your behalf.</li>
+    <li>You'll be redirected to your <strong>Dashboard</strong> — you're signed in and your LinkedIn account is automatically connected.</li>
+  </ol>
+
+  <div class="callout">
+    <strong>One step, two things done.</strong> Signing in with LinkedIn both authenticates you and connects your posting account. No separate "connect" step needed.
+  </div>
+
+  <h3>Step 2: Create your first post</h3>
+  <ol class="steps">
+    <li>Click <strong>"Create Post"</strong> in the sidebar or dashboard.</li>
+    <li>Select your <strong>LinkedIn account</strong> from the dropdown.</li>
+    <li>Write your post content (up to 3,000 characters). Use a template if you have one saved.</li>
+    <li>Pick a <strong>date and time</strong> for publishing. The time is in your local timezone.</li>
+    <li>Optionally attach an <strong>image</strong> (JPEG, PNG, or GIF — max 10 MB).</li>
+    <li>Click <strong>"Schedule Post"</strong> to queue it, or <strong>"Save as Draft"</strong> to finish later.</li>
+  </ol>
+
+  <p>A live preview on the right shows exactly how your post will look on LinkedIn.</p>
+
+  <h3>Step 3: Let it publish</h3>
+  <p>That's it! The scheduler will automatically publish your post at the scheduled time. You can check the status on the <strong>All Posts</strong> page:</p>
+
+  <table>
+    <tr>
+      <th>Status</th>
+      <th>Meaning</th>
+    </tr>
+    <tr>
+      <td><span class="badge badge-draft">DRAFT</span></td>
+      <td>Saved but not yet scheduled — no date/time set.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-pending">PENDING</span></td>
+      <td>Scheduled and waiting for its publish time.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-published">PUBLISHED</span></td>
+      <td>Successfully posted to your LinkedIn feed.</td>
+    </tr>
+    <tr>
+      <td><span class="badge badge-failed">FAILED</span></td>
+      <td>Something went wrong — check the error message and retry.</td>
+    </tr>
+  </table>
+
+  <hr>
+
+  <!-- ─── PAGES GUIDE ─── -->
+  <h2>App pages</h2>
+
+  <h3>Dashboard</h3>
+  <p>Your home screen. Shows a quick summary of your accounts, total posts, and status breakdown (pending, published, failed). Also lists your 5 most recent posts.</p>
+
+  <h3>Create Post</h3>
+  <p>The main scheduling form. Features include:</p>
+  <ul style="margin: 8px 0 16px 20px;">
+    <li>Character counter with color-coded progress bar</li>
+    <li>"Use Template" button to insert saved templates</li>
+    <li>Image upload with drag-and-drop preview</li>
+    <li>Live LinkedIn-style preview panel</li>
+    <li>"Schedule Post" or "Save as Draft" actions</li>
+  </ul>
+
+  <h3>All Posts</h3>
+  <p>View, filter, edit, and manage all your posts. Features:</p>
+  <ul style="margin: 8px 0 16px 20px;">
+    <li>Filter by status (All, Draft, Pending, Published, Failed)</li>
+    <li>Edit draft and pending posts inline</li>
+    <li>Publish immediately, retry failed posts, or delete</li>
+    <li>Bulk select and act on multiple posts at once</li>
+    <li>Import posts from CSV/Excel files</li>
+  </ul>
+
+  <h3>Templates</h3>
+  <p>Create reusable post templates with a name, category, and content. Use them from the "Create Post" page to quickly fill in your content. Templates track how many times they've been used.</p>
+
+  <h3>Calendar</h3>
+  <p>A monthly calendar view showing all your scheduled posts as colored dots. Click any day to see the posts scheduled for that date in a side panel.</p>
+
+  <h3>Accounts</h3>
+  <p>Shows your connected LinkedIn account, including your name, email, and token expiry status. You can reconnect to refresh your access token before it expires.</p>
+
+  <h3>Analytics</h3>
+  <p>View engagement metrics (likes, comments, shares) across all your published posts. Posts are ranked by total engagement. Click "Refresh Data" to pull the latest stats from LinkedIn.</p>
+
+  <hr>
+
+  <!-- ─── IMPORT ─── -->
+  <h2>Importing posts from CSV / Excel</h2>
+  <p>You can bulk-import posts from a spreadsheet file. Go to <strong>All Posts</strong> and click <strong>"Import CSV"</strong>.</p>
+
+  <h3>File format</h3>
+  <p>Create a <code>.csv</code> or <code>.xlsx</code> file with these columns:</p>
+
+  <table>
+    <tr>
+      <th>Column</th>
+      <th>Required</th>
+      <th>Description</th>
+    </tr>
+    <tr>
+      <td><code>Post Text</code></td>
+      <td>Yes</td>
+      <td>The post content, 1-3000 characters</td>
+    </tr>
+    <tr>
+      <td><code>Image URL</code></td>
+      <td>No</td>
+      <td>Public HTTPS URL to a JPEG, PNG, or GIF (max 10 MB)</td>
+    </tr>
+    <tr>
+      <td><code>Scheduled Date</code></td>
+      <td>Yes</td>
+      <td>Format: <code>YYYY-MM-DD</code> (e.g. 2026-10-15)</td>
+    </tr>
+    <tr>
+      <td><code>Scheduled Time</code></td>
+      <td>Yes</td>
+      <td>24-hour format: <code>HH:mm</code> (e.g. 14:30)</td>
+    </tr>
+    <tr>
+      <td><code>Status</code></td>
+      <td>No</td>
+      <td>Leave blank or write <code>Pending</code></td>
+    </tr>
+  </table>
+
+  <h3>Example spreadsheet</h3>
+  <table>
+    <tr>
+      <th>Post Text</th>
+      <th>Image URL</th>
+      <th>Scheduled Date</th>
+      <th>Scheduled Time</th>
+      <th>Status</th>
+    </tr>
+    <tr>
+      <td>Excited to share our Q4 roadmap!</td>
+      <td></td>
+      <td>2026-10-01</td>
+      <td>09:00</td>
+      <td>Pending</td>
+    </tr>
+    <tr>
+      <td>5 tips for better LinkedIn posts...</td>
+      <td>https://example.com/tips.jpg</td>
+      <td>2026-10-03</td>
+      <td>14:30</td>
+      <td>Pending</td>
+    </tr>
+    <tr>
+      <td>Join us at the AI Summit next week!</td>
+      <td></td>
+      <td>2026-10-05</td>
+      <td>10:00</td>
+      <td>Pending</td>
+    </tr>
+  </table>
+
+  <div class="callout">
+    <strong>Limits:</strong> Maximum 100 rows per file, 2 MB file size. All scheduled times must be in the future. Duplicate imports (same text + date + account) are automatically skipped.
+  </div>
+
+  <hr>
+
+  <!-- ─── MULTI-USER ─── -->
+  <h2>Multi-user support</h2>
+  <p>The app fully supports multiple users. Each person signs in with their own LinkedIn account and gets a completely isolated workspace:</p>
+
+  <ul style="margin: 8px 0 16px 20px;">
+    <li>User A cannot see or access User B's posts, templates, or analytics</li>
+    <li>Each user's LinkedIn access token is stored separately</li>
+    <li>The scheduler publishes posts for all users independently</li>
+    <li>Signing out clears only your session — other users are not affected</li>
+  </ul>
+
+  <hr>
+
+  <!-- ─── DARK MODE ─── -->
+  <h2>Dark mode</h2>
+  <p>Click the sun/moon toggle in the sidebar footer to switch between light and dark themes. Your preference is saved in your browser and persists across sessions.</p>
+
+  <hr>
+
+  <!-- ─── TOKEN EXPIRY ─── -->
+  <h2>Token expiry &amp; reconnecting</h2>
+  <p>LinkedIn access tokens expire after <strong>60 days</strong>. The Accounts page shows your token status:</p>
+
+  <table>
+    <tr>
+      <th>Status</th>
+      <th>Meaning</th>
+      <th>Action</th>
+    </tr>
+    <tr>
+      <td style="color: #057642; font-weight: 600;">50d left</td>
+      <td>Healthy — plenty of time remaining</td>
+      <td>None needed</td>
+    </tr>
+    <tr>
+      <td style="color: #d68910; font-weight: 600;">5d left</td>
+      <td>Expiring soon</td>
+      <td>Click "Reconnect LinkedIn" to refresh</td>
+    </tr>
+    <tr>
+      <td style="color: #c0392b; font-weight: 600;">Expired</td>
+      <td>Token expired — posts will fail</td>
+      <td>Sign in again to get a new token</td>
+    </tr>
+  </table>
+
+  <div class="callout-warn callout">
+    <strong>Important:</strong> If your token expires, any pending scheduled posts will fail with an "Access token expired" error. Sign in again to refresh your token, then retry the failed posts from the All Posts page.
+  </div>
+
+  <hr>
+
+  <!-- ─── TROUBLESHOOTING ─── -->
+  <h2>Troubleshooting</h2>
+
+  <h3>Post shows "FAILED" status</h3>
+  <p>Check the error message on the post card. Common causes:</p>
+  <ul style="margin: 8px 0 16px 20px;">
+    <li><strong>"Access token expired"</strong> — Sign in again to refresh your token, then click "Retry".</li>
+    <li><strong>"LinkedIn account not found"</strong> — Your account may have been disconnected. Sign in again.</li>
+    <li><strong>Image-related errors</strong> — Make sure image URLs are public HTTPS and under 10 MB.</li>
+  </ul>
+
+  <h3>Post not appearing on LinkedIn</h3>
+  <p>If your LinkedIn app is in <strong>Development Mode</strong>, posts are only visible to app administrators. Request verification from LinkedIn to make posts visible to all users.</p>
+
+  <h3>Scheduled post didn't publish on time</h3>
+  <p>The scheduler runs approximately every 60 seconds. Your post should publish within 1-2 minutes of its scheduled time. If it doesn't publish at all, check the post status for errors.</p>
+
+  <hr>
+
+  <!-- ─── KEYBOARD SHORTCUTS ─── -->
+  <h2>Quick reference</h2>
+
+  <table>
+    <tr><th>Action</th><th>How to do it</th></tr>
+    <tr><td>Sign in</td><td>Click "Continue with LinkedIn" on the sign-in page</td></tr>
+    <tr><td>Create a post</td><td>Sidebar &rarr; Create Post &rarr; fill form &rarr; Schedule Post</td></tr>
+    <tr><td>Save a draft</td><td>Create Post &rarr; fill form &rarr; Save as Draft (no date needed)</td></tr>
+    <tr><td>Edit a post</td><td>All Posts &rarr; click "Edit" on a draft or pending post</td></tr>
+    <tr><td>Publish immediately</td><td>All Posts &rarr; click "Publish Now" on a pending post</td></tr>
+    <tr><td>Retry a failed post</td><td>All Posts &rarr; click "Retry" on a failed post</td></tr>
+    <tr><td>Import from CSV</td><td>All Posts &rarr; Import CSV &rarr; select file &rarr; Import</td></tr>
+    <tr><td>Use a template</td><td>Create Post &rarr; click "Use Template" above the text area</td></tr>
+    <tr><td>Refresh token</td><td>Accounts &rarr; Reconnect LinkedIn</td></tr>
+    <tr><td>Switch theme</td><td>Click sun/moon icon in the sidebar footer</td></tr>
+    <tr><td>Sign out</td><td>Click "Sign out" in the sidebar footer</td></tr>
+  </table>
+
+  <!-- ─── FOOTER ─── -->
+  <div class="footer">
+    LinkedIn Automation &middot; User Guide v1.0<br>
+    Built with Next.js, MongoDB, and the LinkedIn REST API.
+  </div>
+
+</div>
+</body>
+</html>

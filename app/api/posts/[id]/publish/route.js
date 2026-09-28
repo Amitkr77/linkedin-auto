@@ -4,6 +4,7 @@ import Post from '@/lib/models/Post';
 import { createLinkedInPost } from '@/lib/linkedinService';
 import { isObjectId, publicError } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
+import { notifyPostPublished } from '@/lib/email';
 
 export async function POST(request, { params }) {
   const ownerId = await getOwnerId(request);
@@ -16,7 +17,7 @@ export async function POST(request, { params }) {
       { _id: id, ownerId, status: 'PENDING' },
       { $set: { status: 'PROCESSING', errorMessage: null } },
       { new: true }
-    ).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt ownerId' });
+    ).populate({ path: 'account', select: '+accessToken authorUrn tokenExpiresAt ownerId email' });
     if (!post) {
       return NextResponse.json({ error: 'Pending post not found or already being processed' }, { status: 409 });
     }
@@ -38,6 +39,8 @@ export async function POST(request, { params }) {
     post.linkedinPostUrn = linkedinPostUrn;
     post.publishedAt = new Date();
     await post.save();
+
+    if (post.account?.email) notifyPostPublished(post, post.account.email).catch(() => {});
 
     return NextResponse.json(post);
   } catch (error) {

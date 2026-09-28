@@ -8,6 +8,17 @@ import LocalTime from '@/components/LocalTime';
 import { getSession } from '@/lib/session';
 import { redirect } from 'next/navigation';
 
+async function getTokenWarning(ownerId) {
+  await connectDB();
+  const accounts = await Account.find({ ownerId }).select('tokenExpiresAt displayName').lean();
+  for (const acc of accounts) {
+    const days = Math.floor((new Date(acc.tokenExpiresAt) - new Date()) / (1000 * 60 * 60 * 24));
+    if (days < 0) return { level: 'expired', days: 0, name: acc.displayName || 'Your account' };
+    if (days < 7) return { level: 'expiring', days, name: acc.displayName || 'Your account' };
+  }
+  return null;
+}
+
 async function getStats(ownerId) {
   await connectDB();
   const [total, pending, published, failed, accounts] = await Promise.all([
@@ -33,7 +44,7 @@ export default async function Dashboard() {
   const session = await getSession();
   if (!session?.userId) redirect('/sign-in');
   const ownerId = session.userId;
-  const [stats, recentPosts] = await Promise.all([getStats(ownerId), getRecentPosts(ownerId)]);
+  const [stats, recentPosts, tokenWarning] = await Promise.all([getStats(ownerId), getRecentPosts(ownerId), getTokenWarning(ownerId)]);
 
   return (
     <div>
@@ -41,6 +52,19 @@ export default async function Dashboard() {
         <h1>Dashboard</h1>
         <p>Welcome back, {session.name || 'there'}.</p>
       </div>
+
+      {tokenWarning?.level === 'expired' && (
+        <div className="alert alert-error" style={{ marginBottom: 20 }}>
+          <strong>{tokenWarning.name}:</strong> LinkedIn token has expired. Scheduled posts will fail.{' '}
+          <a href="/api/auth/signin" style={{ textDecoration: 'underline', fontWeight: 600 }}>Reconnect now</a>
+        </div>
+      )}
+      {tokenWarning?.level === 'expiring' && (
+        <div className="alert alert-error" style={{ marginBottom: 20, background: '#fef9c3', color: '#854d0e' }}>
+          <strong>{tokenWarning.name}:</strong> LinkedIn token expires in {tokenWarning.days} day{tokenWarning.days !== 1 ? 's' : ''}.{' '}
+          <a href="/api/auth/signin" style={{ textDecoration: 'underline', fontWeight: 600 }}>Reconnect to refresh</a>
+        </div>
+      )}
 
       <div className={styles.statsGrid}>
         {[

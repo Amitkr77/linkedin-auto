@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { connectDB } from '@/lib/db';
 import Account from '@/lib/models/Account';
+import { fetchAdminOrganizations } from '@/lib/linkedinAnalytics';
 import { createSession, sessionCookieOptions } from '@/lib/session';
 
 // GET /api/auth/signin/callback — LinkedIn OAuth callback
@@ -61,6 +62,29 @@ export async function GET(request) {
     );
 
     console.log(`[AUTH] Signed in: ${profile.name} (${authorUrn})`);
+
+    // 3b. Try to fetch admin organizations (non-fatal if scopes not approved)
+    try {
+      const orgs = await fetchAdminOrganizations(access_token);
+      for (const org of orgs) {
+        await Account.findOneAndUpdate(
+          { authorUrn: org.urn },
+          {
+            ownerId,
+            accessToken: access_token,
+            tokenExpiresAt,
+            accountType: 'organization',
+            displayName: org.name,
+            profilePictureUrl: org.logoUrl || null,
+            linkedPersonUrn: authorUrn,
+          },
+          { upsert: true, new: true }
+        );
+      }
+      if (orgs.length) console.log(`[AUTH] Found ${orgs.length} admin org(s)`);
+    } catch (orgError) {
+      console.warn('[AUTH] Could not fetch admin orgs:', orgError.message);
+    }
 
     // 4. Create session JWT and set it as a cookie
     const jwt = await createSession({

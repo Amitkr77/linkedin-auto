@@ -14,6 +14,7 @@ export default function SchedulePost() {
   const [image, setImage] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [bestTimes, setBestTimes] = useState([]);
 
   useEffect(() => {
     fetch('/api/auth/accounts')
@@ -24,6 +25,10 @@ export default function SchedulePost() {
       })
       .then(setAccounts)
       .catch((err) => addToast('error', err.message));
+    fetch('/api/analytics/best-times')
+      .then((r) => r.json())
+      .then((data) => { if (data.slots?.length) setBestTimes(data.slots); })
+      .catch(() => {});
   }, [addToast]);
 
   useEffect(() => () => {
@@ -137,6 +142,16 @@ export default function SchedulePost() {
                 onChange={(e) => setForm({ ...form, scheduledAt: e.target.value })}
                 min={(() => { const d = new Date(); const p = (n) => String(n).padStart(2, '0'); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; })()}
               />
+              {bestTimes.length > 0 && (
+                <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: '24px' }}>Best times:</span>
+                  {bestTimes.slice(0, 3).map((slot) => (
+                    <span key={slot.label} style={{ fontSize: 12, background: 'var(--blue-light)', color: 'var(--blue)', padding: '2px 8px', borderRadius: 12, fontWeight: 600 }}>
+                      {slot.label}
+                    </span>
+                  ))}
+                </div>
+              )}
             </div>
 
             <div className="form-group">
