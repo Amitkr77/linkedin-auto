@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import Account from '@/lib/models/Account';
 import Post from '@/lib/models/Post';
 import { uploadImageAsset } from '@/lib/linkedinService';
+import { downloadImage } from '@/workers/sheetSync';
 import {
   ALLOWED_IMAGE_TYPES,
   ALLOWED_STATUSES,
@@ -58,6 +59,7 @@ export async function POST(request) {
     const commentary = formData.get('commentary');
     const scheduledAt = formData.get('scheduledAt');
     const imageFile = formData.get('image');
+    const imageUrl = formData.get('imageUrl');
     const isDraft = formData.get('isDraft') === 'true';
 
     if (!isObjectId(accountId)) {
@@ -72,6 +74,9 @@ export async function POST(request) {
       date = parseDate(scheduledAt);
       if (!date) {
         return NextResponse.json({ error: 'Invalid scheduledAt date' }, { status: 400 });
+      }
+      if (date <= new Date()) {
+        return NextResponse.json({ error: 'Scheduled time must be in the future' }, { status: 400 });
       }
     }
 
@@ -99,6 +104,14 @@ export async function POST(request) {
         account.authorUrn,
         buffer,
         imageFile.type
+      );
+    } else if (imageUrl && typeof imageUrl === 'string' && imageUrl.startsWith('https://')) {
+      const image = await downloadImage(imageUrl);
+      mediaUrl = await uploadImageAsset(
+        account.accessToken,
+        account.authorUrn,
+        image.buffer,
+        image.type
       );
     }
 

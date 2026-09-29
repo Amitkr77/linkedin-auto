@@ -98,19 +98,18 @@ export default function AccountsPage() {
         </div>
       )}
 
-      {/* Setup Guide */}
+      {/* How it works */}
       <div className={styles.guide}>
-        <h2 className={styles.guideTitle}>How to configure</h2>
-        <p className={styles.guideSub}>Follow these steps to set up LinkedIn posting for the first time or on a new deployment.</p>
+        <h2 className={styles.guideTitle}>How it works</h2>
+        <p className={styles.guideSub}>A simple guide to scheduling and publishing your LinkedIn posts.</p>
 
         <div className={styles.steps}>
           <div className={`card ${styles.step}`}>
             <div className={styles.stepNum}>1</div>
             <div className={styles.stepContent}>
-              <div className={styles.stepTitle}>Create a LinkedIn App</div>
+              <div className={styles.stepTitle}>Sign in with LinkedIn</div>
               <p className={styles.stepDesc}>
-                Go to <a href="https://www.linkedin.com/developers/apps" target="_blank" rel="noopener noreferrer">LinkedIn Developer Portal</a> and create a new app.
-                Under the <strong>Products</strong> tab, request access to <strong>Share on LinkedIn</strong> and <strong>Sign In with LinkedIn using OpenID Connect</strong>.
+                Click <strong>"Continue with LinkedIn"</strong> on the sign-in page. This connects your LinkedIn account and logs you in — one step, done. Your profile name and photo appear on this page once connected.
               </p>
             </div>
           </div>
@@ -118,37 +117,29 @@ export default function AccountsPage() {
           <div className={`card ${styles.step}`}>
             <div className={styles.stepNum}>2</div>
             <div className={styles.stepContent}>
-              <div className={styles.stepTitle}>Set the redirect URI</div>
+              <div className={styles.stepTitle}>Create a post</div>
               <p className={styles.stepDesc}>
-                In your LinkedIn app's <strong>Auth</strong> tab, add the redirect URL. For local development use <code>http://localhost:3000/api/auth/signin/callback</code>. For production, use your deployed URL:
+                Go to <a href="/schedule"><strong>Create Post</strong></a> in the sidebar. Write your content (up to 3,000 characters), optionally attach an image, and pick a date and time. You can also use a saved <a href="/templates"><strong>Post Template</strong></a> to fill in the content quickly. A live preview shows how the post will look on LinkedIn.
               </p>
-              <div className={styles.envBlock}>{`http://localhost:3000/api/auth/signin/callback
-https://your-domain.vercel.app/api/auth/signin/callback`}</div>
             </div>
           </div>
 
           <div className={`card ${styles.step}`}>
             <div className={styles.stepNum}>3</div>
             <div className={styles.stepContent}>
-              <div className={styles.stepTitle}>Set environment variables</div>
+              <div className={styles.stepTitle}>Schedule or save as draft</div>
               <p className={styles.stepDesc}>
-                Copy your Client ID and Client Secret from the LinkedIn app, then set these environment variables in your <code>.env.local</code> file (local) or Vercel dashboard (production):
+                Click <strong>"Schedule Post"</strong> to queue it for auto-publishing, or <strong>"Save as Draft"</strong> to come back later. Drafts have no publish date — you can set one when you're ready. You can also bulk-import posts from a <strong>CSV or Excel</strong> file on the <a href="/posts"><strong>All Posts</strong></a> page.
               </p>
-              <div className={styles.envBlock}>{`LINKEDIN_CLIENT_ID=your_client_id
-LINKEDIN_CLIENT_SECRET=your_client_secret
-LINKEDIN_REDIRECT_URI=http://localhost:3000/api/auth/signin/callback
-AUTH_SECRET=generate_a_random_32_char_string
-MONGODB_URI=your_mongodb_connection_string
-LINKEDIN_VERSION=202601`}</div>
             </div>
           </div>
 
           <div className={`card ${styles.step}`}>
             <div className={styles.stepNum}>4</div>
             <div className={styles.stepContent}>
-              <div className={styles.stepTitle}>Connect your account</div>
+              <div className={styles.stepTitle}>It publishes automatically</div>
               <p className={styles.stepDesc}>
-                Click <strong>"Reconnect LinkedIn"</strong> above or sign in from the login page. After authorizing, your LinkedIn profile and access token are stored securely. The token lasts <strong>60 days</strong> — come back to this page to check its status and refresh before it expires.
+                A background scheduler checks every ~60 seconds for posts that are due. When the time comes, it publishes your post directly to LinkedIn using your access token. You don't need to be online — close the browser, go to sleep, it handles itself. You'll get an <strong>email notification</strong> when a post publishes or fails.
               </p>
             </div>
           </div>
@@ -156,9 +147,9 @@ LINKEDIN_VERSION=202601`}</div>
           <div className={`card ${styles.step}`}>
             <div className={styles.stepNum}>5</div>
             <div className={styles.stepContent}>
-              <div className={styles.stepTitle}>Set up auto-publishing (Vercel)</div>
+              <div className={styles.stepTitle}>Track and manage</div>
               <p className={styles.stepDesc}>
-                On Vercel, add a <code>CRON_SECRET</code> env var (16+ random characters). The scheduler runs via an Apps Script trigger or Vercel Cron that calls <code>/api/cron</code> every minute to publish due posts.
+                Use <a href="/posts"><strong>All Posts</strong></a> to see every post and its status. Use the <a href="/sheet"><strong>Post Sheet</strong></a> for a spreadsheet view you can export. Use <a href="/calendar"><strong>Calendar</strong></a> to see your schedule visually — drag posts between days to reschedule. Check <a href="/analytics"><strong>Analytics</strong></a> for engagement data (likes, comments, shares).
               </p>
             </div>
           </div>
@@ -166,12 +157,10 @@ LINKEDIN_VERSION=202601`}</div>
           <div className={`card ${styles.step}`}>
             <div className={styles.stepNum}>6</div>
             <div className={styles.stepContent}>
-              <div className={styles.stepTitle}>Email notifications (optional)</div>
+              <div className={styles.stepTitle}>Keep your token fresh</div>
               <p className={styles.stepDesc}>
-                To receive emails when posts publish or fail, add your Gmail credentials. Use an <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer">App Password</a> (not your regular password):
+                Your LinkedIn access token lasts <strong>60 days</strong>. Check the status above — if it shows <strong style={{color: 'var(--orange)'}}>expiring</strong> or <strong style={{color: 'var(--red)'}}>expired</strong>, click <strong>"Reconnect LinkedIn"</strong> to refresh it. If the token expires, pending posts will fail until you reconnect.
               </p>
-              <div className={styles.envBlock}>{`SMTP_EMAIL=your-email@gmail.com
-SMTP_PASSWORD=xxxx xxxx xxxx xxxx`}</div>
             </div>
           </div>
         </div>

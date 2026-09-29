@@ -5,7 +5,10 @@ import Modal from './Modal';
 export default function ImportModal({ open, onClose, accounts, onImported }) {
   const [accountId, setAccountId] = useState('');
   const [file, setFile] = useState(null);
-  const [timeZone, setTimeZone] = useState('Asia/Kolkata');
+  const [timeZone, setTimeZone] = useState(() => {
+    try { return Intl.DateTimeFormat().resolvedOptions().timeZone; }
+    catch { return 'Asia/Kolkata'; }
+  });
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState(null);
   const inputRef = useRef(null);

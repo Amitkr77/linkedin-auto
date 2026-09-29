@@ -25,7 +25,9 @@ export default function EditPostModal({ post, open, onClose, onSaved }) {
     setError('');
     try {
       const body = { commentary };
-      if (scheduledAt) body.scheduledAt = new Date(scheduledAt).toISOString();
+      // Send scheduledAt: null when cleared (reverts PENDING -> DRAFT)
+      // Send the ISO string when a date is set
+      body.scheduledAt = scheduledAt ? new Date(scheduledAt).toISOString() : null;
       const res = await fetch(`/api/posts/${post._id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -96,6 +98,11 @@ export default function EditPostModal({ post, open, onClose, onSaved }) {
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             Set a date to move this draft to Pending.
           </span>
+        )}
+        {post.status === 'PENDING' && scheduledAt && (
+          <button type="button" onClick={() => setScheduledAt('')} style={{ fontSize: 12, color: 'var(--red)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
+            Clear schedule (revert to Draft)
+          </button>
         )}
       </div>
 

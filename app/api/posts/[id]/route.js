@@ -42,10 +42,17 @@ export async function PUT(request, { params }) {
       post.commentary = body.commentary.trim();
     }
     if (body.scheduledAt !== undefined) {
-      const date = parseDate(body.scheduledAt);
-      if (!date) return NextResponse.json({ error: 'Invalid scheduledAt date' }, { status: 400 });
-      post.scheduledAt = date;
-      if (post.status === 'DRAFT') post.status = 'PENDING';
+      if (body.scheduledAt === null || body.scheduledAt === '') {
+        // Clear schedule — revert to DRAFT
+        post.scheduledAt = null;
+        if (post.status === 'PENDING') post.status = 'DRAFT';
+      } else {
+        const date = parseDate(body.scheduledAt);
+        if (!date) return NextResponse.json({ error: 'Invalid scheduledAt date' }, { status: 400 });
+        if (date <= new Date()) return NextResponse.json({ error: 'Scheduled time must be in the future' }, { status: 400 });
+        post.scheduledAt = date;
+        if (post.status === 'DRAFT') post.status = 'PENDING';
+      }
     }
     await post.save();
 

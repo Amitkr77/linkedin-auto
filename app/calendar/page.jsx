@@ -88,6 +88,11 @@ export default function CalendarPage() {
     const oldDate = post.scheduledAt ? new Date(post.scheduledAt) : new Date();
     const newDate = new Date(year, month, targetDay, oldDate.getHours(), oldDate.getMinutes());
 
+    if (newDate <= new Date()) {
+      addToast('error', 'Cannot schedule to a time in the past.');
+      return;
+    }
+
     try {
       const res = await fetch(`/api/posts/${postId}`, {
         method: 'PUT',

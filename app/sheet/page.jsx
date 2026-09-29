@@ -18,7 +18,7 @@ export default function SheetPage() {
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
-  const [newRow, setNewRow] = useState({ accountId: '', commentary: '', scheduledAt: '' });
+  const [newRow, setNewRow] = useState({ accountId: '', commentary: '', scheduledAt: '', imageUrl: '' });
   const [saving, setSaving] = useState(false);
   const pickerRef = useRef(null);
   const addToast = useToast();
@@ -67,12 +67,15 @@ export default function SheetPage() {
     } else {
       data.append('isDraft', 'true');
     }
+    if (newRow.imageUrl.trim()) {
+      data.append('imageUrl', newRow.imageUrl.trim());
+    }
     try {
       const res = await fetch('/api/posts', { method: 'POST', body: data });
       const result = await res.json();
       if (!res.ok) throw new Error(result.error);
       addToast('success', newRow.scheduledAt ? 'Post scheduled!' : 'Draft saved!');
-      setNewRow({ accountId: '', commentary: '', scheduledAt: '' });
+      setNewRow({ accountId: '', commentary: '', scheduledAt: '', imageUrl: '' });
       setShowAdd(false);
       fetchAll();
     } catch (err) {
@@ -177,6 +180,7 @@ export default function SheetPage() {
                 <tr>
                   <th className={styles.colStatus}>Status</th>
                   <th className={styles.colText}>Post Text</th>
+                  <th>Image</th>
                   <th className={styles.colAccount}>Account</th>
                   <th className={styles.colScheduled}>Scheduled</th>
                   <th className={styles.colPublished}>Published</th>
@@ -196,6 +200,14 @@ export default function SheetPage() {
                         placeholder="Post text..."
                         maxLength={3000}
                         rows={2}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        value={newRow.imageUrl}
+                        onChange={(e) => setNewRow({ ...newRow, imageUrl: e.target.value })}
+                        placeholder="https://..."
+                        type="url"
                       />
                     </td>
                     <td>
@@ -229,6 +241,7 @@ export default function SheetPage() {
                   <tr key={post._id}>
                     <td><span className={`badge badge-${post.status.toLowerCase()}`}>{post.status}</span></td>
                     <td><div className={styles.cellText}>{post.commentary}</div></td>
+                    <td>{post.mediaUrl ? <span className={styles.cellMuted} title={post.mediaUrl}>Attached</span> : <span className={styles.cellMuted}>—</span>}</td>
                     <td className={styles.cellMuted}>{post.account?.displayName || post.account?.authorUrn || '—'}</td>
                     <td className={styles.cellMuted}>{post.scheduledAt ? <LocalTime date={post.scheduledAt} /> : '—'}</td>
                     <td className={styles.cellMuted}>{post.publishedAt ? <LocalTime date={post.publishedAt} /> : '—'}</td>
@@ -247,7 +260,7 @@ export default function SheetPage() {
 
                 {posts.length === 0 && !showAdd && (
                   <tr>
-                    <td colSpan="7" style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>
+                    <td colSpan="8" style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>
                       No posts yet. Click "+ Add Row" or "From Template" to create one.
                     </td>
                   </tr>
