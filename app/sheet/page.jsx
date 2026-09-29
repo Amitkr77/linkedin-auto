@@ -1,0 +1,270 @@
+'use client';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { useToast } from '@/components/ToastProvider';
+import LocalTime from '@/components/LocalTime';
+import styles from './page.module.css';
+
+function toLocalDatetimeValue(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+export default function SheetPage() {
+  const [posts, setPosts] = useState([]);
+  const [accounts, setAccounts] = useState([]);
+  const [templates, setTemplates] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showTemplatePicker, setShowTemplatePicker] = useState(false);
+  const [newRow, setNewRow] = useState({ accountId: '', commentary: '', scheduledAt: '' });
+  const [saving, setSaving] = useState(false);
+  const pickerRef = useRef(null);
+  const addToast = useToast();
+
+  const fetchAll = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [postsRes, accRes, tplRes] = await Promise.all([
+        fetch('/api/posts'),
+        fetch('/api/auth/accounts'),
+        fetch('/api/templates'),
+      ]);
+      const [postsData, accData, tplData] = await Promise.all([
+        postsRes.json(), accRes.json(), tplRes.json(),
+      ]);
+      if (postsRes.ok) setPosts(postsData);
+      if (accRes.ok) setAccounts(accData);
+      if (tplRes.ok && Array.isArray(tplData)) setTemplates(tplData);
+    } catch (err) {
+      addToast('error', 'Failed to load data');
+    } finally {
+      setLoading(false);
+    }
+  }, [addToast]);
+
+  useEffect(() => { fetchAll(); }, [fetchAll]);
+
+  // Close template picker on outside click
+  useEffect(() => {
+    if (!showTemplatePicker) return;
+    const handler = (e) => {
+      if (pickerRef.current && !pickerRef.current.contains(e.target)) setShowTemplatePicker(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [showTemplatePicker]);
+
+  const addPost = async () => {
+    if (!newRow.accountId || !newRow.commentary.trim()) return;
+    setSaving(true);
+    const data = new FormData();
+    data.append('accountId', newRow.accountId);
+    data.append('commentary', newRow.commentary);
+    if (newRow.scheduledAt) {
+      data.append('scheduledAt', new Date(newRow.scheduledAt).toISOString());
+    } else {
+      data.append('isDraft', 'true');
+    }
+    try {
+      const res = await fetch('/api/posts', { method: 'POST', body: data });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      addToast('success', newRow.scheduledAt ? 'Post scheduled!' : 'Draft saved!');
+      setNewRow({ accountId: '', commentary: '', scheduledAt: '' });
+      setShowAdd(false);
+      fetchAll();
+    } catch (err) {
+      addToast('error', err.message);
+    }
+    setSaving(false);
+  };
+
+  const deletePost = async (id) => {
+    if (!confirm('Delete this post?')) return;
+    try {
+      const res = await fetch(`/api/posts/${id}`, { method: 'DELETE' });
+      if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
+      addToast('success', 'Deleted.');
+      fetchAll();
+    } catch (err) {
+      addToast('error', err.message);
+    }
+  };
+
+  const useTemplate = (tpl) => {
+    setNewRow({ ...newRow, commentary: tpl.content });
+    setShowTemplatePicker(false);
+    if (!showAdd) setShowAdd(true);
+    // Increment usage count
+    fetch(`/api/templates/${tpl._id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usageCount: (tpl.usageCount || 0) + 1 }),
+    }).catch(() => {});
+  };
+
+  // Stats
+  const total = posts.length;
+  const pending = posts.filter((p) => p.status === 'PENDING').length;
+  const published = posts.filter((p) => p.status === 'PUBLISHED').length;
+  const failed = posts.filter((p) => p.status === 'FAILED').length;
+  const drafts = posts.filter((p) => p.status === 'DRAFT').length;
+
+  return (
+    <div>
+      <div className="page-header">
+        <h1>Post Sheet</h1>
+        <p>Spreadsheet view of all your posts. Add rows, use templates, and export.</p>
+      </div>
+
+      <div className={styles.toolbar}>
+        <div className={styles.toolbarLeft}>
+          <button className="btn btn-primary btn-sm" onClick={() => setShowAdd(!showAdd)}>
+            {showAdd ? 'Cancel' : '+ Add Row'}
+          </button>
+          <div className={styles.templatePicker} ref={pickerRef}>
+            <button className="btn btn-outline btn-sm" onClick={() => setShowTemplatePicker(!showTemplatePicker)}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+              </svg>
+              From Template
+            </button>
+            {showTemplatePicker && (
+              <div className={styles.templateDropdown}>
+                {templates.length === 0 ? (
+                  <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink-faint)', fontSize: 13 }}>
+                    No templates yet. Create one on the Post Templates page.
+                  </div>
+                ) : (
+                  templates.map((tpl) => (
+                    <button key={tpl._id} className={styles.templateItem} onClick={() => useTemplate(tpl)}>
+                      <div className={styles.templateItemName}>{tpl.name}</div>
+                      <div className={styles.templateItemPreview}>{tpl.content}</div>
+                    </button>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+        <div className={styles.toolbarRight}>
+          <a href="/api/posts/export" className="btn btn-outline btn-sm" download>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Export Excel
+          </a>
+          <button className="btn btn-ghost btn-sm" onClick={fetchAll}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+            Refresh
+          </button>
+        </div>
+      </div>
+
+      {loading ? (
+        <p style={{ color: 'var(--ink-faint)' }}>Loading...</p>
+      ) : (
+        <>
+          <div className={styles.tableWrap}>
+            <table className={styles.table}>
+              <thead>
+                <tr>
+                  <th className={styles.colStatus}>Status</th>
+                  <th className={styles.colText}>Post Text</th>
+                  <th className={styles.colAccount}>Account</th>
+                  <th className={styles.colScheduled}>Scheduled</th>
+                  <th className={styles.colPublished}>Published</th>
+                  <th>Error</th>
+                  <th className={styles.colActions}>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {/* Add row form */}
+                {showAdd && (
+                  <tr className={styles.addRow}>
+                    <td><span className="badge badge-draft">NEW</span></td>
+                    <td>
+                      <textarea
+                        value={newRow.commentary}
+                        onChange={(e) => setNewRow({ ...newRow, commentary: e.target.value })}
+                        placeholder="Post text..."
+                        maxLength={3000}
+                        rows={2}
+                      />
+                    </td>
+                    <td>
+                      <select value={newRow.accountId} onChange={(e) => setNewRow({ ...newRow, accountId: e.target.value })}>
+                        <option value="">Account</option>
+                        {accounts.map((a) => (
+                          <option key={a._id} value={a._id}>{a.displayName || a.authorUrn}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        type="datetime-local"
+                        value={newRow.scheduledAt}
+                        onChange={(e) => setNewRow({ ...newRow, scheduledAt: e.target.value })}
+                        min={toLocalDatetimeValue(new Date())}
+                      />
+                    </td>
+                    <td className={styles.cellMuted}>—</td>
+                    <td className={styles.cellMuted}>—</td>
+                    <td>
+                      <button className="btn btn-primary btn-sm" onClick={addPost} disabled={saving || !newRow.commentary.trim() || !newRow.accountId}>
+                        {saving ? '...' : 'Save'}
+                      </button>
+                    </td>
+                  </tr>
+                )}
+
+                {/* Data rows */}
+                {posts.map((post) => (
+                  <tr key={post._id}>
+                    <td><span className={`badge badge-${post.status.toLowerCase()}`}>{post.status}</span></td>
+                    <td><div className={styles.cellText}>{post.commentary}</div></td>
+                    <td className={styles.cellMuted}>{post.account?.displayName || post.account?.authorUrn || '—'}</td>
+                    <td className={styles.cellMuted}>{post.scheduledAt ? <LocalTime date={post.scheduledAt} /> : '—'}</td>
+                    <td className={styles.cellMuted}>{post.publishedAt ? <LocalTime date={post.publishedAt} /> : '—'}</td>
+                    <td>{post.errorMessage ? <span className={styles.cellError} title={post.errorMessage}>{post.errorMessage}</span> : <span className={styles.cellMuted}>—</span>}</td>
+                    <td>
+                      <div className={styles.cellActions}>
+                        {['DRAFT', 'PENDING', 'FAILED'].includes(post.status) && (
+                          <button className="btn btn-ghost btn-sm" onClick={() => deletePost(post._id)} style={{ color: 'var(--red)', fontSize: 12 }}>
+                            Del
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+
+                {posts.length === 0 && !showAdd && (
+                  <tr>
+                    <td colSpan="7" style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>
+                      No posts yet. Click "+ Add Row" or "From Template" to create one.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          <div className={styles.stats}>
+            <span><strong>{total}</strong> total</span>
+            <span><strong>{drafts}</strong> drafts</span>
+            <span><strong>{pending}</strong> pending</span>
+            <span style={{ color: 'var(--green)' }}><strong>{published}</strong> published</span>
+            {failed > 0 && <span style={{ color: 'var(--red)' }}><strong>{failed}</strong> failed</span>}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}

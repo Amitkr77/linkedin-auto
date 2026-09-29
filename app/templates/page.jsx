@@ -79,8 +79,8 @@ export default function TemplatesPage() {
   return (
     <div>
       <div className="page-header">
-        <h1>Templates</h1>
-        <p>Create reusable post templates to speed up your workflow.</p>
+        <h1>Post Templates</h1>
+        <p>Create reusable templates to speed up your content workflow.</p>
       </div>
 
       {!showForm && (
