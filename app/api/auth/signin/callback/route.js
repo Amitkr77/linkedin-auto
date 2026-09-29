@@ -4,6 +4,7 @@ import { connectDB } from '@/lib/db';
 import Account from '@/lib/models/Account';
 import { fetchAdminOrganizations } from '@/lib/linkedinAnalytics';
 import { createSession, sessionCookieOptions } from '@/lib/session';
+import { trackActivity } from '@/lib/activity';
 
 // GET /api/auth/signin/callback — LinkedIn OAuth callback
 // This single route does everything: authenticate the user AND store their LinkedIn token.
@@ -62,6 +63,7 @@ export async function GET(request) {
     );
 
     console.log(`[AUTH] Signed in: ${profile.name} (${authorUrn})`);
+    trackActivity({ ownerId, action: 'login', request, metadata: { name: profile.name, email: profile.email } }).catch(() => {});
 
     // 3b. Try to fetch admin organizations (non-fatal if scopes not approved)
     try {

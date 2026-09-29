@@ -13,6 +13,7 @@ import {
   publicError,
 } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
+import { trackActivity } from '@/lib/activity';
 
 export async function GET(request) {
   try {
@@ -124,6 +125,7 @@ export async function POST(request) {
       status: isDraft ? 'DRAFT' : 'PENDING',
     });
 
+    trackActivity({ ownerId, action: 'post_created', request, metadata: { postId: post._id.toString(), status: post.status } }).catch(() => {});
     return NextResponse.json(post, { status: 201 });
   } catch (error) {
     return publicError(error, 'Unable to schedule post');

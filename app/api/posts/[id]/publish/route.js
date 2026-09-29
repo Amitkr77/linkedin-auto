@@ -5,6 +5,7 @@ import { createLinkedInPost } from '@/lib/linkedinService';
 import { isObjectId, publicError } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
 import { notifyPostPublished } from '@/lib/email';
+import { trackActivity } from '@/lib/activity';
 
 export async function POST(request, { params }) {
   const ownerId = await getOwnerId(request);
@@ -41,6 +42,7 @@ export async function POST(request, { params }) {
     await post.save();
 
     if (post.account?.email) notifyPostPublished(post, post.account.email).catch(() => {});
+    trackActivity({ ownerId, action: 'post_published', request, metadata: { postId: post._id.toString() } }).catch(() => {});
 
     return NextResponse.json(post);
   } catch (error) {
