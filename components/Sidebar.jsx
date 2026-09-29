@@ -93,13 +93,11 @@ export default function Sidebar({ isOpen, onToggle }) {
 
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
         <div className={styles.brand}>
-          <div className={styles.logo}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
-              <rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
-            </svg>
-          </div>
-          <span className={styles.brandText}>LinkedIn Auto</span>
+          <img
+            src="https://fuyl.in/cdn/shop/files/Final_Logo_290526.png?v=1780044950&width=300"
+            alt="FUYL"
+            className={styles.logo}
+          />
         </div>
 
         <nav className={styles.nav}>

@@ -25,7 +25,7 @@ export default function AppShell({ children }) {
               <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
             </svg>
           </button>
-          <span className={styles.mobileTitle}>LinkedIn Auto</span>
+          <img src="https://fuyl.in/cdn/shop/files/Final_Logo_290526.png?v=1780044950&width=300" alt="FUYL" style={{ height: 22 }} />
         </header>
 
         <div className={styles.content}>

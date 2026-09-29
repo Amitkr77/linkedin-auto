@@ -11,26 +11,19 @@ export default function SignInPage() {
       <div className={styles.container}>
         {/* Brand panel */}
         <div className={styles.brandPanel}>
-          <div className={styles.brandEyebrow}>
-            <span className={styles.brandDot} />
-            LinkedIn Automation
-          </div>
+          <img
+            src="https://fuyl.in/cdn/shop/files/Final_Logo_290526.png?v=1780044950&width=300"
+            alt="FUYL"
+            className={styles.brandLogo}
+          />
           <h1 className={styles.brandHeadline}>
             Plan a month of LinkedIn posts in an afternoon.
           </h1>
           <p className={styles.brandSub}>
             Draft, queue and publish from one calendar — then let it run.
           </p>
-          <div className={styles.tiles}>
-            <div className={styles.tile} />
-            <div className={styles.tile} />
-            <div className={styles.tile} />
-            <div className={styles.tile} />
-            <div className={styles.tile} />
-            <div className={styles.tile} />
-          </div>
           <p className={styles.brandFooter}>
-            Protected by LinkedIn OAuth. Your credentials never touch our servers.
+            Powered by FUYL. Your credentials never touch our servers.
           </p>
         </div>
 
