@@ -19,6 +19,8 @@ export default function SheetPage() {
   const [showAdd, setShowAdd] = useState(false);
   const [showTemplatePicker, setShowTemplatePicker] = useState(false);
   const [newRow, setNewRow] = useState({ accountId: '', commentary: '', scheduledAt: '', imageUrl: '' });
+  const [editId, setEditId] = useState(null);
+  const [editData, setEditData] = useState({});
   const [saving, setSaving] = useState(false);
   const pickerRef = useRef(null);
   const addToast = useToast();
@@ -27,9 +29,7 @@ export default function SheetPage() {
     setLoading(true);
     try {
       const [postsRes, accRes, tplRes] = await Promise.all([
-        fetch('/api/posts'),
-        fetch('/api/auth/accounts'),
-        fetch('/api/templates'),
+        fetch('/api/posts'), fetch('/api/auth/accounts'), fetch('/api/templates'),
       ]);
       const [postsData, accData, tplData] = await Promise.all([
         postsRes.json(), accRes.json(), tplRes.json(),
@@ -37,39 +37,29 @@ export default function SheetPage() {
       if (postsRes.ok) setPosts(postsData);
       if (accRes.ok) setAccounts(accData);
       if (tplRes.ok && Array.isArray(tplData)) setTemplates(tplData);
-    } catch (err) {
-      addToast('error', 'Failed to load data');
-    } finally {
-      setLoading(false);
-    }
+    } catch { addToast('error', 'Failed to load data'); }
+    finally { setLoading(false); }
   }, [addToast]);
 
   useEffect(() => { fetchAll(); }, [fetchAll]);
 
-  // Close template picker on outside click
   useEffect(() => {
     if (!showTemplatePicker) return;
-    const handler = (e) => {
-      if (pickerRef.current && !pickerRef.current.contains(e.target)) setShowTemplatePicker(false);
-    };
+    const handler = (e) => { if (pickerRef.current && !pickerRef.current.contains(e.target)) setShowTemplatePicker(false); };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
   }, [showTemplatePicker]);
 
+  // ── Add row ──
   const addPost = async () => {
     if (!newRow.accountId || !newRow.commentary.trim()) return;
     setSaving(true);
     const data = new FormData();
     data.append('accountId', newRow.accountId);
     data.append('commentary', newRow.commentary);
-    if (newRow.scheduledAt) {
-      data.append('scheduledAt', new Date(newRow.scheduledAt).toISOString());
-    } else {
-      data.append('isDraft', 'true');
-    }
-    if (newRow.imageUrl.trim()) {
-      data.append('imageUrl', newRow.imageUrl.trim());
-    }
+    if (newRow.scheduledAt) data.append('scheduledAt', new Date(newRow.scheduledAt).toISOString());
+    else data.append('isDraft', 'true');
+    if (newRow.imageUrl.trim()) data.append('imageUrl', newRow.imageUrl.trim());
     try {
       const res = await fetch('/api/posts', { method: 'POST', body: data });
       const result = await res.json();
@@ -78,12 +68,41 @@ export default function SheetPage() {
       setNewRow({ accountId: '', commentary: '', scheduledAt: '', imageUrl: '' });
       setShowAdd(false);
       fetchAll();
-    } catch (err) {
-      addToast('error', err.message);
-    }
+    } catch (err) { addToast('error', err.message); }
     setSaving(false);
   };
 
+  // ── Inline edit ──
+  const startEdit = (post) => {
+    setEditId(post._id);
+    setEditData({
+      commentary: post.commentary,
+      scheduledAt: toLocalDatetimeValue(post.scheduledAt),
+    });
+  };
+
+  const cancelEdit = () => { setEditId(null); setEditData({}); };
+
+  const saveEdit = async (id) => {
+    setSaving(true);
+    try {
+      const body = { commentary: editData.commentary };
+      body.scheduledAt = editData.scheduledAt ? new Date(editData.scheduledAt).toISOString() : null;
+      const res = await fetch(`/api/posts/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      addToast('success', 'Post updated.');
+      cancelEdit();
+      fetchAll();
+    } catch (err) { addToast('error', err.message); }
+    setSaving(false);
+  };
+
+  // ── Delete ──
   const deletePost = async (id) => {
     if (!confirm('Delete this post?')) return;
     try {
@@ -91,35 +110,70 @@ export default function SheetPage() {
       if (!res.ok) { const d = await res.json(); throw new Error(d.error); }
       addToast('success', 'Deleted.');
       fetchAll();
-    } catch (err) {
-      addToast('error', err.message);
-    }
+    } catch (err) { addToast('error', err.message); }
   };
 
+  // ── Publish now ──
+  const publishNow = async (id) => {
+    if (!confirm('Publish this post to LinkedIn now?')) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/posts/${id}/publish`, { method: 'POST' });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      addToast('success', 'Published!');
+      fetchAll();
+    } catch (err) { addToast('error', err.message); }
+    setSaving(false);
+  };
+
+  // ── Retry ──
+  const retryPost = async (id) => {
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/posts/${id}/retry`, { method: 'POST' });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      addToast('success', 'Queued for retry.');
+      fetchAll();
+    } catch (err) { addToast('error', err.message); }
+    setSaving(false);
+  };
+
+  // ── Duplicate ──
+  const duplicatePost = async (id) => {
+    try {
+      const res = await fetch(`/api/posts/${id}/duplicate`, { method: 'POST' });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error);
+      addToast('success', 'Duplicated as draft.');
+      fetchAll();
+    } catch (err) { addToast('error', err.message); }
+  };
+
+  // ── Template ──
   const useTemplate = (tpl) => {
     setNewRow({ ...newRow, commentary: tpl.content });
     setShowTemplatePicker(false);
     if (!showAdd) setShowAdd(true);
-    // Increment usage count
     fetch(`/api/templates/${tpl._id}`, {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'PUT', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usageCount: (tpl.usageCount || 0) + 1 }),
     }).catch(() => {});
   };
 
-  // Stats
   const total = posts.length;
   const pending = posts.filter((p) => p.status === 'PENDING').length;
   const published = posts.filter((p) => p.status === 'PUBLISHED').length;
   const failed = posts.filter((p) => p.status === 'FAILED').length;
   const drafts = posts.filter((p) => p.status === 'DRAFT').length;
+  const editable = new Set(['DRAFT', 'PENDING']);
 
   return (
     <div>
       <div className="page-header">
         <h1>Post Sheet</h1>
-        <p>Spreadsheet view of all your posts. Add rows, use templates, and export.</p>
+        <p>Spreadsheet view — add, edit, publish, and export your posts.</p>
       </div>
 
       <div className={styles.toolbar}>
@@ -130,25 +184,20 @@ export default function SheetPage() {
           <div className={styles.templatePicker} ref={pickerRef}>
             <button className="btn btn-outline btn-sm" onClick={() => setShowTemplatePicker(!showTemplatePicker)}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                <polyline points="14 2 14 8 20 8"/>
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
               </svg>
               From Template
             </button>
             {showTemplatePicker && (
               <div className={styles.templateDropdown}>
                 {templates.length === 0 ? (
-                  <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink-faint)', fontSize: 13 }}>
-                    No templates yet. Create one on the Post Templates page.
-                  </div>
-                ) : (
-                  templates.map((tpl) => (
-                    <button key={tpl._id} className={styles.templateItem} onClick={() => useTemplate(tpl)}>
-                      <div className={styles.templateItemName}>{tpl.name}</div>
-                      <div className={styles.templateItemPreview}>{tpl.content}</div>
-                    </button>
-                  ))
-                )}
+                  <div style={{ padding: 16, textAlign: 'center', color: 'var(--ink-faint)', fontSize: 13 }}>No templates yet.</div>
+                ) : templates.map((tpl) => (
+                  <button key={tpl._id} className={styles.templateItem} onClick={() => useTemplate(tpl)}>
+                    <div className={styles.templateItemName}>{tpl.name}</div>
+                    <div className={styles.templateItemPreview}>{tpl.content}</div>
+                  </button>
+                ))}
               </div>
             )}
           </div>
@@ -158,21 +207,13 @@ export default function SheetPage() {
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Export Excel
+            Export
           </a>
-          <button className="btn btn-ghost btn-sm" onClick={fetchAll}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
-              <polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/>
-              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
-            </svg>
-            Refresh
-          </button>
+          <button className="btn btn-ghost btn-sm" onClick={fetchAll}>Refresh</button>
         </div>
       </div>
 
-      {loading ? (
-        <p style={{ color: 'var(--ink-faint)' }}>Loading...</p>
-      ) : (
+      {loading ? <p style={{ color: 'var(--ink-faint)' }}>Loading...</p> : (
         <>
           <div className={styles.tableWrap}>
             <table className={styles.table}>
@@ -189,81 +230,77 @@ export default function SheetPage() {
                 </tr>
               </thead>
               <tbody>
-                {/* Add row form */}
+                {/* New row form */}
                 {showAdd && (
                   <tr className={styles.addRow}>
                     <td><span className="badge badge-draft">NEW</span></td>
-                    <td>
-                      <textarea
-                        value={newRow.commentary}
-                        onChange={(e) => setNewRow({ ...newRow, commentary: e.target.value })}
-                        placeholder="Post text..."
-                        maxLength={3000}
-                        rows={2}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        value={newRow.imageUrl}
-                        onChange={(e) => setNewRow({ ...newRow, imageUrl: e.target.value })}
-                        placeholder="https://..."
-                        type="url"
-                      />
-                    </td>
+                    <td><textarea value={newRow.commentary} onChange={(e) => setNewRow({ ...newRow, commentary: e.target.value })} placeholder="Post text..." maxLength={3000} rows={2} /></td>
+                    <td><input value={newRow.imageUrl} onChange={(e) => setNewRow({ ...newRow, imageUrl: e.target.value })} placeholder="https://..." type="url" /></td>
                     <td>
                       <select value={newRow.accountId} onChange={(e) => setNewRow({ ...newRow, accountId: e.target.value })}>
                         <option value="">Account</option>
-                        {accounts.map((a) => (
-                          <option key={a._id} value={a._id}>{a.displayName || a.authorUrn}</option>
-                        ))}
+                        {accounts.map((a) => <option key={a._id} value={a._id}>{a.displayName || a.authorUrn}</option>)}
                       </select>
                     </td>
-                    <td>
-                      <input
-                        type="datetime-local"
-                        value={newRow.scheduledAt}
-                        onChange={(e) => setNewRow({ ...newRow, scheduledAt: e.target.value })}
-                        min={toLocalDatetimeValue(new Date())}
-                      />
-                    </td>
+                    <td><input type="datetime-local" value={newRow.scheduledAt} onChange={(e) => setNewRow({ ...newRow, scheduledAt: e.target.value })} min={toLocalDatetimeValue(new Date())} /></td>
                     <td className={styles.cellMuted}>—</td>
                     <td className={styles.cellMuted}>—</td>
-                    <td>
-                      <button className="btn btn-primary btn-sm" onClick={addPost} disabled={saving || !newRow.commentary.trim() || !newRow.accountId}>
-                        {saving ? '...' : 'Save'}
-                      </button>
-                    </td>
+                    <td><button className="btn btn-primary btn-sm" onClick={addPost} disabled={saving || !newRow.commentary.trim() || !newRow.accountId}>{saving ? '...' : 'Save'}</button></td>
                   </tr>
                 )}
 
                 {/* Data rows */}
-                {posts.map((post) => (
-                  <tr key={post._id}>
-                    <td><span className={`badge badge-${post.status.toLowerCase()}`}>{post.status}</span></td>
-                    <td><div className={styles.cellText}>{post.commentary}</div></td>
-                    <td>{post.mediaUrl ? <span className={styles.cellMuted} title={post.mediaUrl}>Attached</span> : <span className={styles.cellMuted}>—</span>}</td>
-                    <td className={styles.cellMuted}>{post.account?.displayName || post.account?.authorUrn || '—'}</td>
-                    <td className={styles.cellMuted}>{post.scheduledAt ? <LocalTime date={post.scheduledAt} /> : '—'}</td>
-                    <td className={styles.cellMuted}>{post.publishedAt ? <LocalTime date={post.publishedAt} /> : '—'}</td>
-                    <td>{post.errorMessage ? <span className={styles.cellError} title={post.errorMessage}>{post.errorMessage}</span> : <span className={styles.cellMuted}>—</span>}</td>
-                    <td>
-                      <div className={styles.cellActions}>
-                        {['DRAFT', 'PENDING', 'FAILED'].includes(post.status) && (
-                          <button className="btn btn-ghost btn-sm" onClick={() => deletePost(post._id)} style={{ color: 'var(--red)', fontSize: 12 }}>
-                            Del
-                          </button>
+                {posts.map((post) => {
+                  const isEditing = editId === post._id;
+                  const canEdit = editable.has(post.status);
+
+                  return (
+                    <tr key={post._id} className={isEditing ? styles.editingRow : ''}>
+                      <td><span className={`badge badge-${post.status.toLowerCase()}`}>{post.status}</span></td>
+                      <td>
+                        {isEditing ? (
+                          <textarea value={editData.commentary} onChange={(e) => setEditData({ ...editData, commentary: e.target.value })} maxLength={3000} rows={3} className={styles.editInput} />
+                        ) : (
+                          <div className={styles.cellText}>{post.commentary}</div>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td>{post.mediaUrl ? <span className={styles.cellMuted} title={post.mediaUrl}>Attached</span> : <span className={styles.cellMuted}>—</span>}</td>
+                      <td className={styles.cellMuted}>{post.account?.displayName || post.account?.authorUrn || '—'}</td>
+                      <td>
+                        {isEditing ? (
+                          <input type="datetime-local" value={editData.scheduledAt} onChange={(e) => setEditData({ ...editData, scheduledAt: e.target.value })} min={toLocalDatetimeValue(new Date())} className={styles.editInput} />
+                        ) : (
+                          <span className={styles.cellMuted}>{post.scheduledAt ? <LocalTime date={post.scheduledAt} /> : '—'}</span>
+                        )}
+                      </td>
+                      <td className={styles.cellMuted}>{post.publishedAt ? <LocalTime date={post.publishedAt} /> : '—'}</td>
+                      <td>{post.errorMessage ? <span className={styles.cellError} title={post.errorMessage}>{post.errorMessage}</span> : <span className={styles.cellMuted}>—</span>}</td>
+                      <td>
+                        <div className={styles.cellActions}>
+                          {isEditing ? (
+                            <>
+                              <button className="btn btn-primary btn-sm" onClick={() => saveEdit(post._id)} disabled={saving} style={{ fontSize: 12 }}>Save</button>
+                              <button className="btn btn-ghost btn-sm" onClick={cancelEdit} style={{ fontSize: 12 }}>Cancel</button>
+                            </>
+                          ) : (
+                            <>
+                              {canEdit && <button className="btn btn-ghost btn-sm" onClick={() => startEdit(post)} style={{ fontSize: 12 }}>Edit</button>}
+                              {post.status === 'PENDING' && <button className="btn btn-ghost btn-sm" onClick={() => publishNow(post._id)} disabled={saving} style={{ fontSize: 12, color: 'var(--green)' }}>Publish</button>}
+                              {post.status === 'FAILED' && <button className="btn btn-ghost btn-sm" onClick={() => retryPost(post._id)} disabled={saving} style={{ fontSize: 12 }}>Retry</button>}
+                              <button className="btn btn-ghost btn-sm" onClick={() => duplicatePost(post._id)} style={{ fontSize: 12 }}>Dup</button>
+                              {['DRAFT', 'PENDING', 'FAILED'].includes(post.status) && (
+                                <button className="btn btn-ghost btn-sm" onClick={() => deletePost(post._id)} style={{ color: 'var(--red)', fontSize: 12 }}>Del</button>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
 
                 {posts.length === 0 && !showAdd && (
-                  <tr>
-                    <td colSpan="8" style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>
-                      No posts yet. Click "+ Add Row" or "From Template" to create one.
-                    </td>
-                  </tr>
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>No posts yet. Click "+ Add Row" or "From Template".</td></tr>
                 )}
               </tbody>
             </table>

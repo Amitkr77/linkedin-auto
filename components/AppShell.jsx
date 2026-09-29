@@ -7,7 +7,7 @@ import styles from './AppShell.module.css';
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
-  if (pathname === '/sign-in') return children;
+  if (pathname === '/sign-in' || pathname.startsWith('/admin')) return children;
 
   return (
     <div className={styles.shell}>
