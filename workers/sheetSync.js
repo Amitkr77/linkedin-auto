@@ -27,16 +27,15 @@ function publicIp(address) {
 export async function downloadImage(url) {
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port) throw new Error('Image URL must be public HTTPS');
-  const addresses = await dns.lookup(parsed.hostname, { all: true });
-  if (!addresses.length || addresses.some(({ address }) => !publicIp(address))) throw new Error('Image URL must resolve to a public address');
-  const pinned = addresses[0];
-  const agent = new https.Agent({
-    lookup: (_hostname, _options, callback) => callback(null, pinned.address, pinned.family),
-  });
+
+  // Simple fetch without DNS pinning (DNS pinning fails on Vercel serverless)
   const response = await axios.get(url, {
-    responseType: 'arraybuffer', timeout: 20_000, maxRedirects: 0,
-    maxContentLength: MAX_IMAGE_BYTES, validateStatus: (status) => status === 200,
-    httpsAgent: agent, proxy: false,
+    responseType: 'arraybuffer',
+    timeout: 20_000,
+    maxRedirects: 3,
+    maxContentLength: MAX_IMAGE_BYTES,
+    validateStatus: (status) => status === 200,
+    proxy: false,
   });
   const type = String(response.headers['content-type'] || '').split(';')[0].toLowerCase();
   if (!ALLOWED_IMAGE_TYPES.has(type) || response.data.length > MAX_IMAGE_BYTES) {
