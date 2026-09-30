@@ -36,7 +36,10 @@ export default function SignInPage() {
           </p>
           {error && (
             <div className="alert alert-error" style={{ marginBottom: 16 }}>
-              Sign-in failed. Please try again.
+              {error === 'maintenance' ? 'Platform is under maintenance. Please try again later.' :
+               error === 'registration_closed' ? 'New registrations are currently closed.' :
+               error === 'domain_not_allowed' ? 'Your email domain is not allowed on this platform.' :
+               'Sign-in failed. Please try again.'}
             </div>
           )}
           <a

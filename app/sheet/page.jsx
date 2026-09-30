@@ -219,13 +219,14 @@ export default function SheetPage() {
             <table className={styles.table}>
               <thead>
                 <tr>
+                  <th style={{ width: 30 }}>#</th>
                   <th className={styles.colStatus}>Status</th>
                   <th className={styles.colText}>Post Text</th>
-                  <th>Image</th>
+                  <th className={styles.colImage}>Image URL</th>
                   <th className={styles.colAccount}>Account</th>
                   <th className={styles.colScheduled}>Scheduled</th>
                   <th className={styles.colPublished}>Published</th>
-                  <th>Error</th>
+                  <th className={styles.colError}>Error</th>
                   <th className={styles.colActions}>Actions</th>
                 </tr>
               </thead>
@@ -233,12 +234,18 @@ export default function SheetPage() {
                 {/* New row form */}
                 {showAdd && (
                   <tr className={styles.addRow}>
+                    <td className={styles.rowNum}>+</td>
                     <td><span className="badge badge-draft">NEW</span></td>
-                    <td><textarea value={newRow.commentary} onChange={(e) => setNewRow({ ...newRow, commentary: e.target.value })} placeholder="Post text..." maxLength={3000} rows={2} /></td>
-                    <td><input value={newRow.imageUrl} onChange={(e) => setNewRow({ ...newRow, imageUrl: e.target.value })} placeholder="https://..." type="url" /></td>
+                    <td>
+                      <textarea value={newRow.commentary} onChange={(e) => setNewRow({ ...newRow, commentary: e.target.value })} placeholder="Write your post content here..." maxLength={3000} rows={3} />
+                      <div className={styles.charCount}>{newRow.commentary.length}/3000</div>
+                    </td>
+                    <td>
+                      <input className={styles.imageInput} value={newRow.imageUrl} onChange={(e) => setNewRow({ ...newRow, imageUrl: e.target.value })} placeholder="https://example.com/image.jpg" type="url" />
+                    </td>
                     <td>
                       <select value={newRow.accountId} onChange={(e) => setNewRow({ ...newRow, accountId: e.target.value })}>
-                        <option value="">Account</option>
+                        <option value="">Select...</option>
                         {accounts.map((a) => <option key={a._id} value={a._id}>{a.displayName || a.authorUrn}</option>)}
                       </select>
                     </td>
@@ -250,21 +257,35 @@ export default function SheetPage() {
                 )}
 
                 {/* Data rows */}
-                {posts.map((post) => {
+                {posts.map((post, idx) => {
                   const isEditing = editId === post._id;
                   const canEdit = editable.has(post.status);
 
                   return (
                     <tr key={post._id} className={isEditing ? styles.editingRow : ''}>
+                      <td className={styles.rowNum}>{idx + 1}</td>
                       <td><span className={`badge badge-${post.status.toLowerCase()}`}>{post.status}</span></td>
                       <td>
                         {isEditing ? (
-                          <textarea value={editData.commentary} onChange={(e) => setEditData({ ...editData, commentary: e.target.value })} maxLength={3000} rows={3} className={styles.editInput} />
+                          <>
+                            <textarea value={editData.commentary} onChange={(e) => setEditData({ ...editData, commentary: e.target.value })} maxLength={3000} rows={3} className={styles.editInput} />
+                            <div className={styles.charCount}>{editData.commentary.length}/3000</div>
+                          </>
                         ) : (
                           <div className={styles.cellText}>{post.commentary}</div>
                         )}
                       </td>
-                      <td>{post.mediaUrl ? <span className={styles.cellMuted} title={post.mediaUrl}>Attached</span> : <span className={styles.cellMuted}>—</span>}</td>
+                      <td>
+                        {post.mediaUrl ? (
+                          <div className={styles.imageCell}>
+                            <span className={styles.imageBadge}>
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                              Image
+                            </span>
+                            <span className={styles.imageUrl} title={post.mediaUrl}>{post.mediaUrl.split('/').pop()}</span>
+                          </div>
+                        ) : <span className={styles.cellMuted}>—</span>}
+                      </td>
                       <td className={styles.cellMuted}>{post.account?.displayName || post.account?.authorUrn || '—'}</td>
                       <td>
                         {isEditing ? (
@@ -300,7 +321,7 @@ export default function SheetPage() {
                 })}
 
                 {posts.length === 0 && !showAdd && (
-                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>No posts yet. Click "+ Add Row" or "From Template".</td></tr>
+                  <tr><td colSpan="9" style={{ textAlign: 'center', padding: 40, color: 'var(--ink-faint)' }}>No posts yet. Click "+ Add Row" or "From Template".</td></tr>
                 )}
               </tbody>
             </table>

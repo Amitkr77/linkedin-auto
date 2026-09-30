@@ -2,8 +2,9 @@ import { NextResponse } from 'next/server';
 import { getAdminSession } from '@/lib/adminSession';
 import { connectDB } from '@/lib/db';
 import Settings from '@/lib/models/Settings';
+import { clearEmailCache } from '@/lib/email';
 
-// GET /api/admin/settings — load platform settings
+// GET /api/admin/settings
 export async function GET() {
   try {
     const session = await getAdminSession();
@@ -11,10 +12,8 @@ export async function GET() {
     await connectDB();
     let settings = await Settings.findById('platform').lean();
     if (!settings) {
-      settings = await Settings.create({ _id: 'platform' });
-      settings = settings.toObject();
+      settings = (await Settings.create({ _id: 'platform' })).toObject();
     }
-    // Mask password for display (show first 4 chars only)
     if (settings.smtpPassword) {
       settings.smtpPasswordMasked = settings.smtpPassword.slice(0, 4) + '••••••••';
     }
@@ -26,7 +25,7 @@ export async function GET() {
   }
 }
 
-// PUT /api/admin/settings — update platform settings
+// PUT /api/admin/settings
 export async function PUT(request) {
   try {
     const session = await getAdminSession();
@@ -46,7 +45,7 @@ export async function PUT(request) {
     for (const key of allowed) {
       if (body[key] !== undefined) update[key] = body[key];
     }
-    // Don't overwrite password if the masked version is sent back
+    // Don't overwrite password with the masked version
     if (update.smtpPassword && update.smtpPassword.includes('••••')) {
       delete update.smtpPassword;
     }
@@ -57,46 +56,70 @@ export async function PUT(request) {
       { new: true, upsert: true }
     ).lean();
 
-    // Mask password in response
+    // Clear email transporter cache so new SMTP settings take effect immediately
+    clearEmailCache();
+
     if (settings.smtpPassword) {
       settings.smtpPasswordMasked = settings.smtpPassword.slice(0, 4) + '••••••••';
     }
     delete settings.smtpPassword;
 
-    return NextResponse.json({ success: true, settings });
+    return NextResponse.json({ success: true, settings, message: 'Settings saved.' });
   } catch (error) {
     console.error('[ADMIN SETTINGS PUT]', error);
     return NextResponse.json({ error: 'Failed to save settings' }, { status: 500 });
   }
 }
 
-// POST /api/admin/settings/test-email — send a test email
-export async function POST(request) {
+// POST /api/admin/settings — send test email
+export async function POST() {
   try {
     const session = await getAdminSession();
     if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     await connectDB();
     const settings = await Settings.findById('platform').lean();
-    if (!settings?.smtpEmail || !settings?.smtpPassword) {
-      return NextResponse.json({ error: 'SMTP not configured. Save email and password first.' }, { status: 400 });
+
+    // Check DB settings first, fall back to env vars
+    const smtpEmail = settings?.smtpEmail || process.env.SMTP_EMAIL;
+    const smtpPassword = settings?.smtpPassword || process.env.SMTP_PASSWORD;
+
+    if (!smtpEmail || !smtpPassword) {
+      return NextResponse.json({ error: 'SMTP not configured. Enter Gmail address and App Password, save, then test.' }, { status: 400 });
     }
 
-    const nodemailer = await import('nodemailer');
-    const transporter = nodemailer.default.createTransport({
+    const nodemailer = (await import('nodemailer')).default;
+    const transporter = nodemailer.createTransport({
       service: 'gmail',
-      auth: { user: settings.smtpEmail, pass: settings.smtpPassword },
+      auth: { user: smtpEmail, pass: smtpPassword },
     });
 
+    const recipientEmail = session.email || smtpEmail;
     await transporter.sendMail({
-      from: `"${settings.platformName || 'LinkedIn Automation'}" <${settings.smtpEmail}>`,
-      to: session.email,
-      subject: 'Test email from admin panel',
-      html: `<div style="font-family:sans-serif;padding:24px;"><h2>It works!</h2><p>SMTP is configured correctly.</p></div>`,
+      from: `"${settings?.platformName || 'LinkedIn Automation'}" <${smtpEmail}>`,
+      to: recipientEmail,
+      subject: 'Test email — SMTP is working',
+      html: `
+        <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
+          <div style="background: #18392B; padding: 20px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h2 style="color: #fff; margin: 0; font-size: 18px;">SMTP Test Successful</h2>
+          </div>
+          <div style="background: #fff; border: 1px solid #E5E3DC; border-top: none; padding: 24px; border-radius: 0 0 12px 12px;">
+            <p style="color: #2F6B4F; font-weight: 600; margin: 0 0 8px;">Email is working correctly.</p>
+            <p style="color: #666; font-size: 13px; margin: 0;">Sent from: ${smtpEmail}</p>
+            <p style="color: #666; font-size: 13px; margin: 4px 0 0;">Time: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })} IST</p>
+          </div>
+        </div>
+      `,
     });
 
-    return NextResponse.json({ success: true, message: `Test email sent to ${session.email}` });
+    return NextResponse.json({ success: true, message: `Test email sent to ${recipientEmail}` });
   } catch (error) {
     console.error('[ADMIN TEST EMAIL]', error);
-    return NextResponse.json({ error: error.message || 'Failed to send test email' }, { status: 500 });
+    const msg = error.message?.includes('Invalid login')
+      ? 'Gmail rejected the credentials. Make sure you are using an App Password, not your regular password.'
+      : error.message?.includes('EAUTH')
+        ? 'Authentication failed. Check your Gmail address and App Password.'
+        : error.message || 'Failed to send test email';
+    return NextResponse.json({ error: msg }, { status: 500 });
   }
 }

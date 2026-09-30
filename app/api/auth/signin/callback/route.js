@@ -46,8 +46,34 @@ export async function GET(request) {
     // The ownerId is the LinkedIn person ID — unique per user
     const ownerId = profile.sub;
 
-    // 3. Store LinkedIn account (token + profile) in one step
+    // 3. Check platform settings
     await connectDB();
+    const Settings = (await import('@/lib/models/Settings')).default;
+    const platformSettings = await Settings.findById('platform').lean().catch(() => null);
+
+    // Check maintenance mode
+    if (platformSettings?.maintenanceMode) {
+      return redirectTo(request, '/sign-in?error=maintenance');
+    }
+
+    // Check if registration is allowed for new users
+    const existingAccount = await Account.findOne({ authorUrn }).lean();
+    if (!existingAccount && platformSettings?.registrationEnabled === false) {
+      return redirectTo(request, '/sign-in?error=registration_closed');
+    }
+
+    // Check allowed email domains
+    if (!existingAccount && platformSettings?.allowedEmailDomains) {
+      const allowed = platformSettings.allowedEmailDomains.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+      if (allowed.length > 0 && profile.email) {
+        const domain = profile.email.split('@')[1]?.toLowerCase();
+        if (!allowed.includes(domain)) {
+          return redirectTo(request, '/sign-in?error=domain_not_allowed');
+        }
+      }
+    }
+
+    // 3b. Store LinkedIn account
     await Account.findOneAndUpdate(
       { authorUrn },
       {

@@ -1,12 +1,13 @@
 import cron from 'node-cron';
 import { connectDB } from '../lib/db.js';
 import Post from '../lib/models/Post.js';
-import Account from '../lib/models/Account.js'; // must import so Mongoose registers the schema for .populate()
+import Account from '../lib/models/Account.js';
+import Settings from '../lib/models/Settings.js';
 import { createLinkedInPost } from '../lib/linkedinService.js';
 import { notifyPostPublished, notifyPostFailed } from '../lib/email.js';
 import { trackActivity } from '../lib/activity.js';
 
-const MAX_RETRIES = 3;
+const DEFAULT_MAX_RETRIES = 3;
 
 function isTransientError(error) {
   const status = error.response?.status;
@@ -24,6 +25,14 @@ export async function runSchedulerTick() {
 
   try {
     await connectDB();
+
+    // Check if scheduler is disabled by admin
+    const platformSettings = await Settings.findById('platform').lean().catch(() => null);
+    if (platformSettings?.schedulerEnabled === false) {
+      running = false;
+      return { skipped: true, processed: 0, reason: 'Scheduler disabled by admin' };
+    }
+    const MAX_RETRIES = platformSettings?.maxRetriesPerPost ?? DEFAULT_MAX_RETRIES;
 
     // Recovery: reset posts stuck in PROCESSING for more than 5 minutes back to PENDING
     const stuckCutoff = new Date(Date.now() - 5 * 60 * 1000);

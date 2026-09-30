@@ -83,7 +83,7 @@ export default function AdminSettingsPage() {
             <div className={styles.formRow}>
               <span className={styles.formLabel}>App password</span>
               <div>
-                <input className={styles.formInput} value={settings.smtpPassword || settings.smtpPasswordMasked || ''} onChange={(e) => update('smtpPassword', e.target.value)} placeholder="xxxx xxxx xxxx xxxx" type="password" />
+                <input className={styles.formInput} value={settings.smtpPassword ?? ''} onChange={(e) => update('smtpPassword', e.target.value)} placeholder={settings.smtpPasswordMasked || 'xxxx xxxx xxxx xxxx'} type="text" autoComplete="off" />
                 <p className={styles.formHint}>Use a Gmail App Password, not your regular password. <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', textDecoration: 'underline' }}>Generate one here</a></p>
               </div>
             </div>
