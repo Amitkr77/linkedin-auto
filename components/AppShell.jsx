@@ -1,12 +1,27 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import styles from './AppShell.module.css';
 
+// Ping /api/cron/tick every 60s while the tab is visible.
+// Keeps scheduled posts publishing on Vercel free tier (1 cron/day limit).
+function useSchedulerHeartbeat() {
+  useEffect(() => {
+    const tick = () => {
+      if (document.visibilityState === 'hidden') return;
+      fetch('/api/cron/tick', { method: 'POST' }).catch(() => {});
+    };
+    const initial = setTimeout(tick, 5_000);
+    const interval = setInterval(tick, 60_000);
+    return () => { clearTimeout(initial); clearInterval(interval); };
+  }, []);
+}
+
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  useSchedulerHeartbeat();
   if (pathname === '/sign-in' || pathname.startsWith('/admin')) return children;
 
   return (
