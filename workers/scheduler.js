@@ -1,6 +1,7 @@
 import cron from 'node-cron';
 import { connectDB } from '../lib/db.js';
 import Post from '../lib/models/Post.js';
+import Account from '../lib/models/Account.js'; // must import so Mongoose registers the schema for .populate()
 import { createLinkedInPost } from '../lib/linkedinService.js';
 import { notifyPostPublished, notifyPostFailed } from '../lib/email.js';
 import { trackActivity } from '../lib/activity.js';
