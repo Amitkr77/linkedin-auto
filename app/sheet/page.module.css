@@ -32,7 +32,7 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
-  min-width: 1050px;
+  min-width: 1200px;
 }
 
 .table th {
@@ -70,14 +70,14 @@
 }
 
 /* Column widths */
-.colStatus { width: 100px; }
-.colText { min-width: 280px; }
-.colImage { width: 160px; }
-.colAccount { width: 130px; }
-.colScheduled { width: 170px; }
-.colPublished { width: 170px; }
-.colError { width: 160px; }
-.colActions { width: 170px; text-align: center; }
+.colStatus { width: 90px; }
+.colText { min-width: 250px; }
+.colImage { min-width: 200px; }
+.colAccount { min-width: 150px; }
+.colScheduled { min-width: 170px; }
+.colPublished { min-width: 150px; }
+.colError { min-width: 140px; }
+.colActions { min-width: 180px; text-align: center; }
 
 /* Cell content */
 .cellText {
@@ -185,13 +185,17 @@
   min-height: 56px;
 }
 
-/* Image URL input in add row — wider and more visible */
+/* Image URL input in add row — textarea style for full visibility */
 .imageInput {
   width: 100% !important;
+  min-width: 180px !important;
   font-size: 12px !important;
   padding: 8px 10px !important;
-  font-family: monospace;
+  font-family: 'Cascadia Code', 'Fira Code', monospace;
   word-break: break-all;
+  resize: vertical;
+  min-height: 44px;
+  line-height: 1.4;
 }
 
 /* ── Editing row ── */

@@ -241,11 +241,11 @@ export default function SheetPage() {
                       <div className={styles.charCount}>{newRow.commentary.length}/3000</div>
                     </td>
                     <td>
-                      <input className={styles.imageInput} value={newRow.imageUrl} onChange={(e) => setNewRow({ ...newRow, imageUrl: e.target.value })} placeholder="https://example.com/image.jpg" type="url" />
+                      <textarea className={styles.imageInput} value={newRow.imageUrl} onChange={(e) => setNewRow({ ...newRow, imageUrl: e.target.value })} placeholder="Paste image URL here&#10;e.g. https://example.com/photo.jpg" rows={2} />
                     </td>
                     <td>
-                      <select value={newRow.accountId} onChange={(e) => setNewRow({ ...newRow, accountId: e.target.value })}>
-                        <option value="">Select...</option>
+                      <select value={newRow.accountId} onChange={(e) => setNewRow({ ...newRow, accountId: e.target.value })} style={{ minWidth: 140 }}>
+                        <option value="">Select account...</option>
                         {accounts.map((a) => <option key={a._id} value={a._id}>{a.displayName || a.authorUrn}</option>)}
                       </select>
                     </td>
