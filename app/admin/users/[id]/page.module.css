@@ -243,6 +243,149 @@
   white-space: nowrap;
 }
 
+/* Health score circle */
+.healthCircle {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  flex-shrink: 0;
+}
+.healthSvg {
+  width: 80px;
+  height: 80px;
+  transform: rotate(-90deg);
+}
+.healthBg {
+  fill: none;
+  stroke: var(--border);
+  stroke-width: 3;
+}
+.healthFill {
+  fill: none;
+  stroke-width: 3;
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.5s ease;
+}
+.healthValue {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -60%);
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--ink);
+}
+.healthLabel {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, 40%);
+  font-size: 10px;
+  color: var(--ink-faint);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Risk badge */
+.riskBadge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.risk_low { background: #D1FAE5; color: var(--green); }
+.risk_medium { background: #FEF3C7; color: #92400E; }
+.risk_high { background: #FEE2E2; color: var(--red); }
+
+/* Trends row */
+.trendsRow {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: var(--space-6);
+}
+.trendCard {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+.trendValue {
+  font-size: 20px;
+  font-weight: 800;
+  display: block;
+}
+.trendLabel {
+  font-size: 12px;
+  color: var(--ink-faint);
+  margin-top: 2px;
+}
+
+/* Heatmap */
+.heatmap {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: repeat(7, 1fr);
+  gap: 3px;
+  grid-auto-flow: column;
+}
+.heatCell {
+  width: 100%;
+  aspect-ratio: 1;
+  border-radius: 3px;
+  min-width: 10px;
+}
+.heatLegend {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 8px;
+  justify-content: flex-end;
+  font-size: 11px;
+  color: var(--ink-faint);
+}
+.heatLegend .heatCell {
+  width: 12px;
+  height: 12px;
+  aspect-ratio: auto;
+}
+
+/* Word cloud */
+.wordCloud {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: baseline;
+}
+.wordTag {
+  display: inline-block;
+  padding: 2px 8px;
+  background: var(--hover);
+  border-radius: var(--radius-sm);
+  color: var(--ink);
+  font-weight: 600;
+  line-height: 1.4;
+}
+.wordTag small {
+  font-size: 10px;
+  color: var(--ink-faint);
+  font-weight: 400;
+  margin-left: 2px;
+}
+
+/* Spinner */
+.spinner {
+  width: 32px;
+  height: 32px;
+  border: 3px solid var(--border);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
 .muted { color: var(--ink-faint); font-size: 12px; }
 
 @media (max-width: 768px) {
