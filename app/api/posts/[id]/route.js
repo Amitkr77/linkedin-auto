@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import Post from '@/lib/models/Post';
 import { isObjectId, parseDate, publicError } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
+import { trackActivity } from '@/lib/activity';
 
 const EDITABLE = new Set(['DRAFT', 'PENDING']);
 
@@ -55,6 +56,7 @@ export async function PUT(request, { params }) {
       }
     }
     await post.save();
+    trackActivity({ ownerId, action: 'post_edited', metadata: { postId: id } }).catch(() => {});
 
     return NextResponse.json(post);
   } catch (error) {
@@ -73,6 +75,7 @@ export async function DELETE(request, { params }) {
     if (!post) {
       return NextResponse.json({ error: 'Editable post not found' }, { status: 404 });
     }
+    trackActivity({ ownerId, action: 'post_deleted', metadata: { postId: id } }).catch(() => {});
     return NextResponse.json({ message: 'Post deleted' });
   } catch (error) {
     return publicError(error, 'Unable to delete post');

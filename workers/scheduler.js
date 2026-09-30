@@ -3,6 +3,7 @@ import { connectDB } from '../lib/db.js';
 import Post from '../lib/models/Post.js';
 import { createLinkedInPost } from '../lib/linkedinService.js';
 import { notifyPostPublished, notifyPostFailed } from '../lib/email.js';
+import { trackActivity } from '../lib/activity.js';
 
 const MAX_RETRIES = 3;
 
@@ -22,6 +23,17 @@ export async function runSchedulerTick() {
 
   try {
     await connectDB();
+
+    // Recovery: reset posts stuck in PROCESSING for more than 5 minutes back to PENDING
+    const stuckCutoff = new Date(Date.now() - 5 * 60 * 1000);
+    const stuckResult = await Post.updateMany(
+      { status: 'PROCESSING', updatedAt: { $lte: stuckCutoff } },
+      { $set: { status: 'PENDING', errorMessage: 'Recovered from stuck PROCESSING state' } }
+    );
+    if (stuckResult.modifiedCount > 0) {
+      console.log(`[CRON] Recovered ${stuckResult.modifiedCount} stuck PROCESSING post(s)`);
+    }
+
     while (processed < 100) {
       const post = await Post.findOneAndUpdate(
         { ownerId: { $type: 'string' }, status: 'PENDING', scheduledAt: { $lte: new Date() } },
@@ -61,9 +73,10 @@ export async function runSchedulerTick() {
         post.retryCount = 0;
         await post.save();
         console.log(`[SUCCESS] Post ${post._id} -> ${urn}`);
-        // Email notification (non-blocking)
+        // Notifications (non-blocking)
         const email = post.account.email || null;
         if (email) notifyPostPublished(post, email).catch(() => {});
+        trackActivity({ ownerId: post.ownerId, action: 'post_published', metadata: { postId: post._id.toString(), auto: true } }).catch(() => {});
       } catch (error) {
         const transient = isTransientError(error);
         const retries = (post.retryCount || 0) + 1;
@@ -84,6 +97,7 @@ export async function runSchedulerTick() {
           await post.save();
           console.error(`[FAILED] Post ${post._id}:`, post.errorMessage);
           if (post.account?.email) notifyPostFailed(post, post.account.email).catch(() => {});
+          trackActivity({ ownerId: post.ownerId, action: 'post_failed', metadata: { postId: post._id.toString(), error: post.errorMessage } }).catch(() => {});
         }
       }
     }

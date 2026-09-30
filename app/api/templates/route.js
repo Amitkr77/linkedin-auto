@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import Template from '@/lib/models/Template';
 import { publicError } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
+import { trackActivity } from '@/lib/activity';
 
 export async function GET(request) {
   try {
@@ -38,6 +39,7 @@ export async function POST(request) {
       category: category?.trim() || 'General',
     });
 
+    trackActivity({ ownerId, action: 'template_created', metadata: { templateId: template._id.toString(), name: name.trim() } }).catch(() => {});
     return NextResponse.json(template, { status: 201 });
   } catch (error) {
     return publicError(error, 'Unable to create template');

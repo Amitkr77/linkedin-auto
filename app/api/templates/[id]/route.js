@@ -3,6 +3,7 @@ import { connectDB } from '@/lib/db';
 import Template from '@/lib/models/Template';
 import { isObjectId, publicError } from '@/lib/api';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
+import { trackActivity } from '@/lib/activity';
 
 export async function GET(request, { params }) {
   try {
@@ -52,6 +53,7 @@ export async function DELETE(request, { params }) {
     await connectDB();
     const template = await Template.findOneAndDelete({ _id: id, ownerId });
     if (!template) return NextResponse.json({ error: 'Template not found' }, { status: 404 });
+    trackActivity({ ownerId, action: 'template_deleted', metadata: { templateId: id } }).catch(() => {});
     return NextResponse.json({ message: 'Template deleted' });
   } catch (error) {
     return publicError(error, 'Unable to delete template');

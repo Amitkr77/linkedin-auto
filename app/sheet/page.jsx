@@ -286,7 +286,7 @@ export default function SheetPage() {
                             <>
                               {canEdit && <button className="btn btn-ghost btn-sm" onClick={() => startEdit(post)} style={{ fontSize: 12 }}>Edit</button>}
                               {post.status === 'PENDING' && <button className="btn btn-ghost btn-sm" onClick={() => publishNow(post._id)} disabled={saving} style={{ fontSize: 12, color: 'var(--green)' }}>Publish</button>}
-                              {post.status === 'FAILED' && <button className="btn btn-ghost btn-sm" onClick={() => retryPost(post._id)} disabled={saving} style={{ fontSize: 12 }}>Retry</button>}
+                              {(post.status === 'FAILED' || post.status === 'PROCESSING') && <button className="btn btn-ghost btn-sm" onClick={() => retryPost(post._id)} disabled={saving} style={{ fontSize: 12 }}>Retry</button>}
                               <button className="btn btn-ghost btn-sm" onClick={() => duplicatePost(post._id)} style={{ fontSize: 12 }}>Dup</button>
                               {['DRAFT', 'PENDING', 'FAILED'].includes(post.status) && (
                                 <button className="btn btn-ghost btn-sm" onClick={() => deletePost(post._id)} style={{ color: 'var(--red)', fontSize: 12 }}>Del</button>

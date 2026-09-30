@@ -291,14 +291,16 @@ export default function PostsPage() {
                       Delete
                     </button>
                   )}
-                  {post.status === 'FAILED' && (
+                  {(post.status === 'FAILED' || post.status === 'PROCESSING') && (
                     <>
                       <button className="btn btn-outline btn-sm" onClick={() => retry(post._id)} disabled={actionId === post._id}>
                         {actionId === post._id ? 'Retrying…' : 'Retry'}
                       </button>
-                      <button className="btn btn-danger btn-sm" onClick={() => remove(post._id)} disabled={actionId === post._id}>
-                        Delete
-                      </button>
+                      {post.status === 'FAILED' && (
+                        <button className="btn btn-danger btn-sm" onClick={() => remove(post._id)} disabled={actionId === post._id}>
+                          Delete
+                        </button>
+                      )}
                     </>
                   )}
                   <button className="btn btn-ghost btn-sm" onClick={() => duplicate(post._id)} disabled={actionId === post._id}>

@@ -9,6 +9,7 @@ import { uploadImageAsset } from '@/lib/linkedinService';
 import Account from '@/lib/models/Account';
 import Post from '@/lib/models/Post';
 import { getOwnerId, unauthorized } from '@/lib/currentUser';
+import { trackActivity } from '@/lib/activity';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -102,6 +103,7 @@ export async function POST(request) {
         result.skipped += 1;
       }
     }
+    if (result.imported > 0) trackActivity({ ownerId, action: 'post_imported', request, metadata: { imported: result.imported, skipped: result.skipped } }).catch(() => {});
     return Response.json(result);
   } catch (error) {
     console.error('[FILE IMPORT ERROR]', error);

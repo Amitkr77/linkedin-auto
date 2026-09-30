@@ -13,7 +13,7 @@ export async function POST(request, { params }) {
 
     await connectDB();
     const post = await Post.findOneAndUpdate(
-      { _id: id, ownerId, status: 'FAILED' },
+      { _id: id, ownerId, status: { $in: ['FAILED', 'PROCESSING'] } },
       { $set: { status: 'PENDING', errorMessage: null, scheduledAt: new Date() } },
       { new: true }
     );
