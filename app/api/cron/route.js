@@ -20,7 +20,10 @@ export async function GET(request) {
     const result = await runSchedulerTick();
     return Response.json(result);
   } catch (error) {
-    console.error('[VERCEL CRON ERROR]', error);
-    return Response.json({ error: 'Scheduler failed; inspect the function logs' }, { status: 500 });
+    console.error('[VERCEL CRON ERROR]', error?.message, error?.stack);
+    return Response.json({
+      error: 'Scheduler failed',
+      message: error?.message || 'Unknown error',
+    }, { status: 500 });
   }
 }
