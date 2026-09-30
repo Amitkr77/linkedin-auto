@@ -153,7 +153,7 @@ export default function SheetPage() {
 
   // ── Template ──
   const useTemplate = (tpl) => {
-    setNewRow({ ...newRow, commentary: tpl.content });
+    setNewRow((prev) => ({ ...prev, commentary: tpl.content }));
     setShowTemplatePicker(false);
     if (!showAdd) setShowAdd(true);
     fetch(`/api/templates/${tpl._id}`, {

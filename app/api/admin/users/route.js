@@ -17,26 +17,59 @@ export async function GET(request) {
 
     // ── Single user detail ──
     if (detailId) {
-      const accounts = await Account.find({ ownerId: detailId }).lean();
-      const postStats = await Post.aggregate([
-        { $match: { ownerId: detailId } },
-        { $group: {
-          _id: '$status',
-          count: { $sum: 1 },
-          lastDate: { $max: '$createdAt' },
-        }},
+      const [accounts, recentPosts, activities] = await Promise.all([
+        Account.find({ ownerId: detailId }).lean(),
+        Post.find({ ownerId: detailId }).sort({ createdAt: -1 }).limit(10).populate('account', 'displayName authorUrn').lean(),
+        UserActivity.find({ ownerId: detailId }).sort({ createdAt: -1 }).limit(50).lean(),
       ]);
-      const recentPosts = await Post.find({ ownerId: detailId })
-        .sort({ createdAt: -1 }).limit(10)
-        .populate('account', 'displayName authorUrn').lean();
-      const activities = await UserActivity.find({ ownerId: detailId })
-        .sort({ createdAt: -1 }).limit(50).lean();
-      const loginLocations = await UserActivity.aggregate([
-        { $match: { ownerId: detailId, action: 'login', country: { $ne: null } } },
-        { $group: { _id: { city: '$city', region: '$region', country: '$country' }, count: { $sum: 1 }, lastSeen: { $max: '$createdAt' } } },
-        { $sort: { count: -1 } },
-        { $limit: 10 },
+
+      const [postStats, loginLocations, deviceStats, browserStats, osStats, activeHours] = await Promise.all([
+        Post.aggregate([
+          { $match: { ownerId: detailId } },
+          { $group: { _id: '$status', count: { $sum: 1 }, lastDate: { $max: '$createdAt' } } },
+        ]),
+        UserActivity.aggregate([
+          { $match: { ownerId: detailId, action: 'login', country: { $ne: null } } },
+          { $group: { _id: { city: '$city', region: '$region', country: '$country' }, count: { $sum: 1 }, lastSeen: { $max: '$createdAt' } } },
+          { $sort: { count: -1 } }, { $limit: 10 },
+        ]),
+        UserActivity.aggregate([
+          { $match: { ownerId: detailId, device: { $ne: null } } },
+          { $group: { _id: '$device', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+        UserActivity.aggregate([
+          { $match: { ownerId: detailId, browser: { $ne: null } } },
+          { $group: { _id: '$browser', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+        UserActivity.aggregate([
+          { $match: { ownerId: detailId, os: { $ne: null } } },
+          { $group: { _id: '$os', count: { $sum: 1 } } },
+          { $sort: { count: -1 } },
+        ]),
+        UserActivity.aggregate([
+          { $match: { ownerId: detailId } },
+          { $group: { _id: { $hour: '$createdAt' }, count: { $sum: 1 } } },
+          { $sort: { count: -1 } }, { $limit: 5 },
+        ]),
       ]);
+
+      // Post behavior analytics
+      const allPosts = await Post.find({ ownerId: detailId }).select('commentary mediaUrl status createdAt').lean();
+      const totalPosts = allPosts.length;
+      const avgPostLength = totalPosts > 0 ? Math.round(allPosts.reduce((s, p) => s + (p.commentary?.length || 0), 0) / totalPosts) : 0;
+      const imageUsageRate = totalPosts > 0 ? Math.round((allPosts.filter(p => p.mediaUrl).length / totalPosts) * 100) : 0;
+      const failureRate = totalPosts > 0 ? Math.round((allPosts.filter(p => p.status === 'FAILED').length / totalPosts) * 100) : 0;
+
+      // Posts per week (last 4 weeks)
+      const fourWeeksAgo = new Date(Date.now() - 28 * 24 * 60 * 60 * 1000);
+      const recentPostCount = allPosts.filter(p => new Date(p.createdAt) >= fourWeeksAgo).length;
+      const postsPerWeek = Math.round((recentPostCount / 4) * 10) / 10;
+
+      // Days since last login
+      const lastLogin = activities.find(a => a.action === 'login');
+      const daysSinceLastLogin = lastLogin ? Math.floor((Date.now() - new Date(lastLogin.createdAt).getTime()) / 86400000) : null;
 
       const stats = {};
       for (const s of postStats) stats[s._id] = { count: s.count, lastDate: s.lastDate };
@@ -53,14 +86,22 @@ export async function GET(request) {
             failed: stats.FAILED?.count || 0,
             drafts: stats.DRAFT?.count || 0,
           },
+          behavior: {
+            avgPostLength,
+            imageUsageRate,
+            failureRate,
+            postsPerWeek,
+            daysSinceLastLogin,
+          },
+          devices: deviceStats.map(d => ({ name: d._id, count: d.count })),
+          browsers: browserStats.map(d => ({ name: d._id, count: d.count })),
+          operatingSystems: osStats.map(d => ({ name: d._id, count: d.count })),
+          activeHours: activeHours.map(h => ({ hour: h._id, count: h.count })),
           recentPosts,
           activities,
-          loginLocations: loginLocations.map((l) => ({
-            city: l._id.city,
-            region: l._id.region,
-            country: l._id.country,
-            count: l.count,
-            lastSeen: l.lastSeen,
+          loginLocations: loginLocations.map(l => ({
+            city: l._id.city, region: l._id.region, country: l._id.country,
+            count: l.count, lastSeen: l.lastSeen,
           })),
         },
       });

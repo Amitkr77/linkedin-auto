@@ -5,7 +5,6 @@ import Sidebar from './Sidebar';
 import styles from './AppShell.module.css';
 
 // Ping /api/cron/tick every 60s while the tab is visible.
-// Keeps scheduled posts publishing on Vercel free tier (1 cron/day limit).
 function useSchedulerHeartbeat() {
   useEffect(() => {
     const tick = () => {
@@ -18,10 +17,27 @@ function useSchedulerHeartbeat() {
   }, []);
 }
 
+// Report screen size once per session for admin analytics.
+function useScreenBeacon() {
+  useEffect(() => {
+    if (sessionStorage.getItem('beacon_sent')) return;
+    const timer = setTimeout(() => {
+      fetch('/api/beacon', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ screenWidth: window.screen.width, screenHeight: window.screen.height }),
+      }).catch(() => {});
+      sessionStorage.setItem('beacon_sent', '1');
+    }, 3000);
+    return () => clearTimeout(timer);
+  }, []);
+}
+
 export default function AppShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   useSchedulerHeartbeat();
+  useScreenBeacon();
   if (pathname === '/sign-in' || pathname.startsWith('/admin')) return children;
 
   return (

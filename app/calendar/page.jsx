@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { useToast } from '@/components/ToastProvider';
 import LocalTime from '@/components/LocalTime';
 import styles from './page.module.css';
@@ -14,11 +14,14 @@ function endOfMonth(d) {
 }
 
 export default function CalendarPage() {
-  const [current, setCurrent] = useState(new Date());
+  const [current, setCurrent] = useState(() => new Date());
   const [posts, setPosts] = useState([]);
   const [selectedDay, setSelectedDay] = useState(null);
   const [dropTarget, setDropTarget] = useState(null);
+  const [mounted, setMounted] = useState(false);
   const addToast = useToast();
+
+  useEffect(() => { setMounted(true); }, []);
 
   const fetchPosts = useCallback(async () => {
     const from = startOfMonth(current).toISOString();
@@ -120,7 +123,7 @@ export default function CalendarPage() {
           <div className={styles.calNav}>
             <button className="btn btn-ghost btn-sm" onClick={prev}>&larr;</button>
             <h2 className={styles.monthTitle}>
-              {current.toLocaleString('default', { month: 'long', year: 'numeric' })}
+              {mounted ? current.toLocaleString('default', { month: 'long', year: 'numeric' }) : ''}
             </h2>
             <button className="btn btn-ghost btn-sm" onClick={goToday}>Today</button>
             <button className="btn btn-ghost btn-sm" onClick={next}>&rarr;</button>
@@ -174,7 +177,7 @@ export default function CalendarPage() {
         {selectedDay && (
           <div className={`card ${styles.panel}`}>
             <h3 className={styles.panelTitle}>
-              {current.toLocaleString('default', { month: 'short' })} {selectedDay}
+              {mounted ? current.toLocaleString('default', { month: 'short' }) : ''} {selectedDay}
             </h3>
             {dayPosts.length === 0 ? (
               <p className={styles.noPosts}>No posts on this day.</p>

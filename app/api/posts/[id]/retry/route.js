@@ -14,7 +14,7 @@ export async function POST(request, { params }) {
     await connectDB();
     const post = await Post.findOneAndUpdate(
       { _id: id, ownerId, status: { $in: ['FAILED', 'PROCESSING'] } },
-      { $set: { status: 'PENDING', errorMessage: null, scheduledAt: new Date() } },
+      { $set: { status: 'PENDING', errorMessage: null, scheduledAt: new Date(), retryCount: 0 } },
       { new: true }
     );
 

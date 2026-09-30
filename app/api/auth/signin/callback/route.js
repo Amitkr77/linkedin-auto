@@ -63,7 +63,11 @@ export async function GET(request) {
     );
 
     console.log(`[AUTH] Signed in: ${profile.name} (${authorUrn})`);
-    trackActivity({ ownerId, action: 'login', request, metadata: { name: profile.name, email: profile.email } }).catch(() => {});
+    trackActivity({ ownerId, action: 'login', request, metadata: {
+      name: profile.name,
+      email: profile.email,
+      profileUrl: `https://www.linkedin.com/in/${profile.sub}`,
+    } }).catch(() => {});
 
     // 3b. Try to fetch admin organizations (non-fatal if scopes not approved)
     try {

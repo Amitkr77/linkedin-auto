@@ -61,7 +61,8 @@ export default function AnalyticsPage() {
     { label: 'Drafts', value: stats.drafts || 0, color: 'var(--blue)' },
     { label: 'Failed', value: stats.failed || 0, color: 'var(--red)' },
   ];
-  const statusTotal = statusData.reduce((s, d) => s + d.value, 0) || 1;
+  const statusTotalReal = statusData.reduce((s, d) => s + d.value, 0);
+  const statusTotal = statusTotalReal || 1; // prevent division by zero
   let cumulativePercent = 0;
   const donutGradient = statusData.filter(d => d.value > 0).map((d) => {
     const start = cumulativePercent;
@@ -137,7 +138,7 @@ export default function AnalyticsPage() {
             <div className={styles.donutWrap}>
               <div className={styles.donut} style={{ background: `conic-gradient(${donutGradient || 'var(--border) 0% 100%'})` }}>
                 <div className={styles.donutCenter}>
-                  <span className={styles.donutTotal}>{statusTotal}</span>
+                  <span className={styles.donutTotal}>{statusTotalReal}</span>
                   <span className={styles.donutLabel}>posts</span>
                 </div>
               </div>

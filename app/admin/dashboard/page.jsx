@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
@@ -164,6 +164,78 @@ export default function AdminDashboardPage() {
                               <p style={{ color: 'var(--text-muted)', padding: 16 }}>Loading...</p>
                             ) : userDetail ? (
                               <div className={styles.detailGrid}>
+                                {/* Behavior stats */}
+                                {userDetail.behavior && (
+                                  <div className={styles.detailCard}>
+                                    <h4 className={styles.detailTitle}>Behavior insights</h4>
+                                    <div className={styles.behaviorGrid}>
+                                      <div className={styles.behaviorItem}>
+                                        <div className={styles.behaviorValue}>{userDetail.behavior.postsPerWeek}</div>
+                                        <div className={styles.behaviorLabel}>Posts/week</div>
+                                      </div>
+                                      <div className={styles.behaviorItem}>
+                                        <div className={styles.behaviorValue}>{userDetail.behavior.avgPostLength}</div>
+                                        <div className={styles.behaviorLabel}>Avg chars</div>
+                                      </div>
+                                      <div className={styles.behaviorItem}>
+                                        <div className={styles.behaviorValue}>{userDetail.behavior.imageUsageRate}%</div>
+                                        <div className={styles.behaviorLabel}>Image use</div>
+                                      </div>
+                                      <div className={styles.behaviorItem}>
+                                        <div className={styles.behaviorValue}>{userDetail.behavior.failureRate}%</div>
+                                        <div className={styles.behaviorLabel}>Fail rate</div>
+                                      </div>
+                                      <div className={styles.behaviorItem}>
+                                        <div className={styles.behaviorValue}>{userDetail.behavior.daysSinceLastLogin ?? '--'}</div>
+                                        <div className={styles.behaviorLabel}>Days since login</div>
+                                      </div>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {/* Device / Browser / OS */}
+                                <div className={styles.detailCard}>
+                                  <h4 className={styles.detailTitle}>Devices & browsers</h4>
+                                  <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    {(userDetail.devices?.length > 0) && (
+                                      <div>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-faint)', marginBottom: 4 }}>DEVICE</div>
+                                        {userDetail.devices.map((d, i) => (
+                                          <div key={i} className={styles.locationItem}>
+                                            <span className={styles.locationName}>{d.name}</span>
+                                            <span className={styles.locationMeta}>{d.count}x</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {(userDetail.browsers?.length > 0) && (
+                                      <div>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-faint)', marginBottom: 4 }}>BROWSER</div>
+                                        {userDetail.browsers.map((b, i) => (
+                                          <div key={i} className={styles.locationItem}>
+                                            <span className={styles.locationName}>{b.name}</span>
+                                            <span className={styles.locationMeta}>{b.count}x</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {(userDetail.operatingSystems?.length > 0) && (
+                                      <div>
+                                        <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--ink-faint)', marginBottom: 4 }}>OS</div>
+                                        {userDetail.operatingSystems.map((o, i) => (
+                                          <div key={i} className={styles.locationItem}>
+                                            <span className={styles.locationName}>{o.name}</span>
+                                            <span className={styles.locationMeta}>{o.count}x</span>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    )}
+                                    {(!userDetail.devices?.length && !userDetail.browsers?.length) && (
+                                      <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No device data yet</p>
+                                    )}
+                                  </div>
+                                </div>
+
                                 {/* Login locations */}
                                 <div className={styles.detailCard}>
                                   <h4 className={styles.detailTitle}>Login locations</h4>
@@ -183,6 +255,23 @@ export default function AdminDashboardPage() {
                                   )}
                                 </div>
 
+                                {/* Active hours */}
+                                <div className={styles.detailCard}>
+                                  <h4 className={styles.detailTitle}>Most active hours (UTC)</h4>
+                                  {(userDetail.activeHours?.length > 0) ? (
+                                    <div className={styles.locationList}>
+                                      {userDetail.activeHours.map((h, i) => (
+                                        <div key={i} className={styles.locationItem}>
+                                          <span className={styles.locationName}>{String(h.hour).padStart(2, '0')}:00</span>
+                                          <span className={styles.locationMeta}>{h.count} actions</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  ) : (
+                                    <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>No data yet</p>
+                                  )}
+                                </div>
+
                                 {/* Recent activity */}
                                 <div className={styles.detailCard}>
                                   <h4 className={styles.detailTitle}>Recent activity</h4>
@@ -194,6 +283,7 @@ export default function AdminDashboardPage() {
                                         <div key={i} className={styles.activityItem}>
                                           <span className={styles.activityAction}>{act.action.replace(/_/g, ' ')}</span>
                                           <span className={styles.activityTime}>{formatDateTime(act.createdAt)}</span>
+                                          {act.device && <span style={{ fontSize: 11, color: 'var(--ink-faint)' }}>{act.device}</span>}
                                           {act.ip && <span className={styles.activityIp}>{act.ip}</span>}
                                         </div>
                                       ))}
@@ -235,4 +325,3 @@ export default function AdminDashboardPage() {
   );
 }
 
-function Fragment({ children }) { return children; }

@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useToast } from '@/components/ToastProvider';
 import EmptyState from '@/components/EmptyState';
+import LocalTime from '@/components/LocalTime';
 import styles from './page.module.css';
 
 export default function AccountsPage() {
@@ -89,7 +90,7 @@ export default function AccountsPage() {
                   </div>
                   <div className={styles.metaItem}>
                     <span className={styles.metaLabel}>Connected</span>
-                    <span>{new Date(acc.createdAt).toLocaleDateString()}</span>
+                    <LocalTime date={acc.createdAt} />
                   </div>
                 </div>
               </div>
