@@ -5,9 +5,11 @@ import styles from './page.module.css';
 
 const TABS = [
   { id: 'email', label: 'Email', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
-  { id: 'platform', label: 'Platform', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
+  { id: 'platform', label: 'Platform', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06"/></svg> },
+  { id: 'branding', label: 'Branding', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg> },
   { id: 'scheduler', label: 'Scheduler', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
   { id: 'access', label: 'Access', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> },
+  { id: 'data', label: 'Data', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg> },
 ];
 
 export default function AdminSettingsPage() {
@@ -282,6 +284,134 @@ export default function AdminSettingsPage() {
                   Registration is closed. New users cannot create accounts.
                 </div>
               )}
+
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 16 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Security</h3>
+
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>Session timeout (days)</label>
+                  <input className={styles.inputSmall} type="number" value={settings.sessionTimeoutDays || 60} onChange={(e) => update('sessionTimeoutDays', parseInt(e.target.value) || 60)} min="1" max="365" />
+                  <p className={styles.fieldHint}>How long a user stays signed in before they need to log in again. Default is 60 days.</p>
+                </div>
+
+                <div className={styles.field}>
+                  <label className={styles.fieldLabel}>IP blacklist</label>
+                  <input className={styles.input} value={settings.ipBlacklist || ''} onChange={(e) => update('ipBlacklist', e.target.value)} placeholder="1.2.3.4, 5.6.7.8" />
+                  <p className={styles.fieldHint}>Comma-separated IP addresses. These IPs will be blocked from accessing the API. Leave empty to allow all.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ BRANDING TAB ═══ */}
+        {tab === 'branding' && (
+          <div className={styles.section}>
+            <div className={`card ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionIconWrap} style={{ background: '#F3E8FF', color: '#7C3AED' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+                </div>
+                <div>
+                  <h2 className={styles.sectionTitle}>Branding & appearance</h2>
+                  <p className={styles.sectionDesc}>Customize the look of your platform.</p>
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Logo URL</label>
+                <input className={styles.input} value={settings.logoUrl || ''} onChange={(e) => update('logoUrl', e.target.value)} placeholder="https://example.com/logo.png" />
+                <p className={styles.fieldHint}>Direct URL to your logo image. Appears in the sidebar and mobile header.</p>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Brand color</label>
+                <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                  <input type="color" value={settings.brandColor || '#18392B'} onChange={(e) => update('brandColor', e.target.value)} style={{ width: 44, height: 36, border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', padding: 2 }} />
+                  <input className={styles.input} value={settings.brandColor || '#18392B'} onChange={(e) => update('brandColor', e.target.value)} placeholder="#18392B" style={{ width: 140 }} />
+                </div>
+                <p className={styles.fieldHint}>Primary button and accent color used across the platform.</p>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Favicon URL</label>
+                <input className={styles.input} value={settings.faviconUrl || ''} onChange={(e) => update('faviconUrl', e.target.value)} placeholder="https://example.com/favicon.ico" />
+                <p className={styles.fieldHint}>Browser tab icon. Use a .ico, .png, or .svg file.</p>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 8 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Announcement banner</h3>
+                <p className={styles.fieldHint} style={{ marginBottom: 16 }}>Show a dismissable banner to all logged-in users. Useful for updates, downtime notices, or feature announcements.</p>
+
+                <div className={styles.toggleRow}>
+                  <div className={styles.toggleInfo}>
+                    <div className={styles.toggleTitle}>Show announcement</div>
+                    <div className={styles.toggleDesc}>Banner appears at the top of every page.</div>
+                  </div>
+                  <button type="button" className={`${styles.toggle} ${settings.announcementEnabled ? styles.on : ''}`} onClick={() => update('announcementEnabled', !settings.announcementEnabled)} />
+                </div>
+
+                {settings.announcementEnabled && (
+                  <>
+                    <div className={styles.field} style={{ marginTop: 12 }}>
+                      <label className={styles.fieldLabel}>Banner message</label>
+                      <input className={styles.input} value={settings.announcementText || ''} onChange={(e) => update('announcementText', e.target.value)} placeholder="We just launched a new feature! Check it out." />
+                    </div>
+                    <div className={styles.field}>
+                      <label className={styles.fieldLabel}>Banner type</label>
+                      <select className={styles.input} value={settings.announcementType || 'info'} onChange={(e) => update('announcementType', e.target.value)} style={{ width: 200 }}>
+                        <option value="info">Info (green)</option>
+                        <option value="warning">Warning (yellow)</option>
+                        <option value="success">Success (green)</option>
+                      </select>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ DATA TAB ═══ */}
+        {tab === 'data' && (
+          <div className={styles.section}>
+            <div className={`card ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionIconWrap} style={{ background: '#DBEAFE', color: '#1E40AF' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+                </div>
+                <div>
+                  <h2 className={styles.sectionTitle}>Data management</h2>
+                  <p className={styles.sectionDesc}>Auto-cleanup rules and data backup.</p>
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Auto-delete failed posts after (days)</label>
+                <input className={styles.inputSmall} type="number" value={settings.autoDeleteFailedDays || 0} onChange={(e) => update('autoDeleteFailedDays', parseInt(e.target.value) || 0)} min="0" />
+                <p className={styles.fieldHint}>Set to 0 to keep failed posts forever. Otherwise, failed posts older than this many days are automatically removed.</p>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Auto-delete published posts after (days)</label>
+                <input className={styles.inputSmall} type="number" value={settings.autoDeletePublishedDays || 0} onChange={(e) => update('autoDeletePublishedDays', parseInt(e.target.value) || 0)} min="0" />
+                <p className={styles.fieldHint}>Set to 0 to keep published posts forever. Useful for keeping the database small on long-running instances.</p>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Activity log retention (days)</label>
+                <input className={styles.inputSmall} type="number" value={settings.dataRetentionActivityDays || 90} onChange={(e) => update('dataRetentionActivityDays', parseInt(e.target.value) || 90)} min="7" />
+                <p className={styles.fieldHint}>User activity records older than this are automatically deleted. Minimum 7 days.</p>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: 20, marginTop: 8 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 700, marginBottom: 8 }}>Backup</h3>
+                <p className={styles.fieldHint} style={{ marginBottom: 16 }}>Download a full JSON backup of all platform data (accounts, posts, templates, activity logs). Does not include LinkedIn access tokens.</p>
+                <a href="/api/admin/export" className="btn btn-outline btn-sm" download>
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  Download backup (JSON)
+                </a>
+              </div>
             </div>
           </div>
         )}

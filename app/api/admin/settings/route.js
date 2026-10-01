@@ -3,6 +3,7 @@ import { getAdminSession } from '@/lib/adminSession';
 import { connectDB } from '@/lib/db';
 import Settings from '@/lib/models/Settings';
 import { clearEmailCache } from '@/lib/email';
+import { clearPlatformCache } from '@/lib/platformCheck';
 
 // GET /api/admin/settings
 export async function GET() {
@@ -36,9 +37,13 @@ export async function PUT(request) {
     const allowed = [
       'smtpEmail', 'smtpPassword', 'emailNotificationsEnabled',
       'platformName', 'platformUrl', 'maintenanceMode', 'maintenanceMessage',
+      'logoUrl', 'brandColor', 'faviconUrl',
+      'announcementEnabled', 'announcementText', 'announcementType',
       'maxPostsPerUser', 'maxTemplatesPerUser',
       'schedulerEnabled', 'maxRetriesPerPost',
       'registrationEnabled', 'allowedEmailDomains',
+      'sessionTimeoutDays', 'maxSessionsPerUser', 'ipBlacklist',
+      'autoDeleteFailedDays', 'autoDeletePublishedDays', 'dataRetentionActivityDays',
     ];
 
     const update = {};
@@ -56,8 +61,8 @@ export async function PUT(request) {
       { new: true, upsert: true }
     ).lean();
 
-    // Clear email transporter cache so new SMTP settings take effect immediately
     clearEmailCache();
+    clearPlatformCache();
 
     if (settings.smtpPassword) {
       settings.smtpPasswordMasked = settings.smtpPassword.slice(0, 4) + '••••••••';

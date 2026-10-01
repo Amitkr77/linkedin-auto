@@ -103,7 +103,7 @@ export default function Sidebar({ isOpen, onToggle }) {
       <aside className={`${styles.sidebar} ${isOpen ? styles.open : ''}`}>
         <div className={styles.brand}>
           <img
-            src="https://fuyl.in/cdn/shop/files/Final_Logo_290526.png?v=1780044950&width=300"
+            src="/FUYL LINKEDINAUTO LOGO.png"
             alt="FUYL"
             className={styles.logo}
           />
