@@ -264,12 +264,18 @@ export default function AdminSettingsPage() {
                 </div>
               </div>
 
-              <div className={styles.toggleRow}>
-                <div className={styles.toggleInfo}>
-                  <div className={styles.toggleTitle}>Open registration</div>
-                  <div className={styles.toggleDesc}>When off, only existing users can sign in. New LinkedIn accounts are rejected.</div>
-                </div>
-                <button type="button" className={`${styles.toggle} ${settings.registrationEnabled ? styles.on : ''}`} onClick={() => update('registrationEnabled', !settings.registrationEnabled)} />
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Registration mode</label>
+                <select className={styles.input} value={settings.registrationMode || 'open'} onChange={(e) => update('registrationMode', e.target.value)} style={{ width: 280 }}>
+                  <option value="open">Open — anyone can sign in</option>
+                  <option value="approval">Approval required — admin must approve new users</option>
+                  <option value="invite">Invite only — users need an invite link</option>
+                </select>
+                <p className={styles.fieldHint}>
+                  {(settings.registrationMode || 'open') === 'open' && 'Any LinkedIn user can sign in and start using the platform immediately.'}
+                  {settings.registrationMode === 'approval' && 'New users see a "Pending approval" page after sign-in. You approve or reject them from the admin dashboard.'}
+                  {settings.registrationMode === 'invite' && 'Users can only sign in via an invite link you generate from the admin dashboard.'}
+                </p>
               </div>
 
               <div className={styles.field} style={{ marginTop: 20 }}>
@@ -278,10 +284,16 @@ export default function AdminSettingsPage() {
                 <p className={styles.fieldHint}>Comma-separated list of email domains. Only LinkedIn accounts with these email domains can sign up. Leave empty to allow all domains.</p>
               </div>
 
-              {!settings.registrationEnabled && (
+              {settings.registrationMode === 'invite' && (
                 <div className={styles.warningBox}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-                  Registration is closed. New users cannot create accounts.
+                  Invite-only mode is active. Users cannot sign up without an invite link from the admin dashboard.
+                </div>
+              )}
+              {settings.registrationMode === 'approval' && (
+                <div className={styles.warningBox} style={{ background: '#DBEAFE', borderColor: '#3B82F6', color: '#1E40AF' }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+                  Approval mode is active. New users will see a "Pending" page until you approve them in the admin dashboard.
                 </div>
               )}
 

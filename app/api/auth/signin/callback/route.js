@@ -5,6 +5,7 @@ import Account from '@/lib/models/Account';
 import { fetchAdminOrganizations } from '@/lib/linkedinAnalytics';
 import { createSession, sessionCookieOptions } from '@/lib/session';
 import { trackActivity } from '@/lib/activity';
+import { sendEmail } from '@/lib/email';
 
 // GET /api/auth/signin/callback — LinkedIn OAuth callback
 // This single route does everything: authenticate the user AND store their LinkedIn token.
@@ -56,22 +57,51 @@ export async function GET(request) {
       return redirectTo(request, '/sign-in?error=maintenance');
     }
 
-    // Check if registration is allowed for new users
     const existingAccount = await Account.findOne({ authorUrn }).lean();
-    if (!existingAccount && platformSettings?.registrationEnabled === false) {
-      return redirectTo(request, '/sign-in?error=registration_closed');
-    }
+    const regMode = platformSettings?.registrationMode || 'open';
+    const isNewUser = !existingAccount;
 
-    // Check allowed email domains
-    if (!existingAccount && platformSettings?.allowedEmailDomains) {
-      const allowed = platformSettings.allowedEmailDomains.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
-      if (allowed.length > 0 && profile.email) {
-        const domain = profile.email.split('@')[1]?.toLowerCase();
-        if (!allowed.includes(domain)) {
-          return redirectTo(request, '/sign-in?error=domain_not_allowed');
+    if (isNewUser) {
+      // Check allowed email domains
+      if (platformSettings?.allowedEmailDomains) {
+        const allowed = platformSettings.allowedEmailDomains.split(',').map(d => d.trim().toLowerCase()).filter(Boolean);
+        if (allowed.length > 0 && profile.email) {
+          const domain = profile.email.split('@')[1]?.toLowerCase();
+          if (!allowed.includes(domain)) {
+            return redirectTo(request, '/sign-in?error=domain_not_allowed');
+          }
+        }
+      }
+
+      // Check registration mode
+      if (regMode === 'invite') {
+        // Check for valid invite token in cookie
+        const inviteToken = request.cookies.get('invite_token')?.value;
+        if (!inviteToken) {
+          return redirectTo(request, '/sign-in?error=invite_only');
+        }
+        const Invite = (await import('@/lib/models/Invite')).default;
+        const invite = await Invite.findOne({ token: inviteToken, usedAt: null, expiresAt: { $gt: new Date() } });
+        if (!invite) {
+          return redirectTo(request, '/sign-in?error=invite_invalid');
+        }
+        // Mark invite as used
+        invite.usedAt = new Date();
+        invite.usedBy = ownerId;
+        await invite.save();
+      }
+
+      if (regMode === 'approval' && !existingAccount) {
+        // Check if user was previously rejected
+        const rejected = await Account.findOne({ authorUrn, status: 'REJECTED' }).lean();
+        if (rejected) {
+          return redirectTo(request, '/sign-in?error=rejected');
         }
       }
     }
+
+    // Determine account status for new users
+    const accountStatus = isNewUser && regMode === 'approval' ? 'PENDING' : (existingAccount?.status || 'ACTIVE');
 
     // 3b. Store LinkedIn account
     await Account.findOneAndUpdate(
@@ -81,6 +111,7 @@ export async function GET(request) {
         accessToken: access_token,
         tokenExpiresAt,
         accountType: 'person',
+        status: existingAccount ? existingAccount.status : accountStatus,
         displayName: profile.name || null,
         profilePictureUrl: profile.picture || null,
         email: profile.email || null,
@@ -127,9 +158,21 @@ export async function GET(request) {
       picture: profile.picture || null,
     });
 
-    const response = NextResponse.redirect(new URL('/', request.url));
+    const redirectUrl = accountStatus === 'PENDING' ? '/pending' : '/';
+    const response = NextResponse.redirect(new URL(redirectUrl, request.url));
     response.cookies.set(sessionCookieOptions(jwt));
     response.cookies.delete('oauth_state');
+    response.cookies.delete('invite_token');
+
+    // Notify admin of new pending user
+    if (accountStatus === 'PENDING') {
+      sendEmail({
+        to: platformSettings?.smtpEmail || process.env.SMTP_EMAIL,
+        subject: `New user awaiting approval: ${profile.name}`,
+        html: `<div style="font-family:sans-serif;padding:24px;"><h2>New user needs approval</h2><p><strong>${profile.name}</strong> (${profile.email}) signed up and is waiting for your approval.</p><p>Go to the admin panel to approve or reject.</p></div>`,
+      }).catch(() => {});
+    }
+
     return response;
   } catch (error) {
     console.error('[AUTH] LinkedIn callback failed:', error.response?.data || error.message);

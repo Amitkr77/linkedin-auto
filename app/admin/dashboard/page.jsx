@@ -6,20 +6,58 @@ import styles from './page.module.css';
 export default function AdminDashboardPage() {
   const router = useRouter();
   const [data, setData] = useState(null);
+  const [pendingUsers, setPendingUsers] = useState([]);
+  const [invites, setInvites] = useState([]);
+  const [inviteEmail, setInviteEmail] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [actionMsg, setActionMsg] = useState('');
 
-  useEffect(() => { fetchUsers(); }, []);
+  useEffect(() => { fetchAll(); }, []);
 
-  async function fetchUsers() {
+  async function fetchAll() {
     try {
-      const res = await fetch('/api/admin/users');
-      if (res.status === 401) { router.replace('/admin'); return; }
-      const json = await res.json();
-      if (!json.success) { setError(json.message || 'Failed'); return; }
-      setData(json);
+      const [usersRes, pendingRes, invitesRes] = await Promise.all([
+        fetch('/api/admin/users'),
+        fetch('/api/admin/pending'),
+        fetch('/api/admin/invite'),
+      ]);
+      if (usersRes.status === 401) { router.replace('/admin'); return; }
+      const [usersJson, pendingJson, invitesJson] = await Promise.all([
+        usersRes.json(), pendingRes.json(), invitesRes.json(),
+      ]);
+      if (usersJson.success) setData(usersJson);
+      if (pendingJson.success) setPendingUsers(pendingJson.users || []);
+      if (invitesJson.success) setInvites(invitesJson.invites || []);
     } catch { setError('Network error'); }
     finally { setLoading(false); }
+  }
+
+  async function approveUser(ownerId) {
+    const res = await fetch('/api/admin/approve', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerId }) });
+    const json = await res.json();
+    setActionMsg(json.success ? 'User approved!' : json.error);
+    fetchAll();
+    setTimeout(() => setActionMsg(''), 3000);
+  }
+
+  async function rejectUser(ownerId) {
+    const reason = prompt('Rejection reason (optional):');
+    const res = await fetch('/api/admin/reject', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ownerId, reason }) });
+    const json = await res.json();
+    setActionMsg(json.success ? 'User rejected.' : json.error);
+    fetchAll();
+    setTimeout(() => setActionMsg(''), 3000);
+  }
+
+  async function sendInvite() {
+    if (!inviteEmail.includes('@')) return;
+    const res = await fetch('/api/admin/invite', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: inviteEmail }) });
+    const json = await res.json();
+    setActionMsg(json.success ? `Invite sent to ${inviteEmail}` : json.error);
+    setInviteEmail('');
+    fetchAll();
+    setTimeout(() => setActionMsg(''), 3000);
   }
 
   async function handleLogout() {
@@ -58,7 +96,7 @@ export default function AdminDashboardPage() {
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
             <a href="/admin/settings" className="btn btn-ghost">Settings</a>
-            <button className="btn btn-ghost" onClick={fetchUsers}>Refresh</button>
+            <button className="btn btn-ghost" onClick={fetchAll}>Refresh</button>
             <button className="btn btn-outline" onClick={handleLogout}>Logout</button>
           </div>
         </div>
@@ -81,6 +119,52 @@ export default function AdminDashboardPage() {
               <div className={`${styles.statValue} ${cls || ''}`}>{value}</div>
             </div>
           ))}
+        </div>
+
+        {/* Action message */}
+        {actionMsg && <div style={{ padding: '10px 16px', background: '#D1FAE5', color: '#065F46', borderRadius: 8, marginBottom: 16, fontSize: 14, fontWeight: 600 }}>{actionMsg}</div>}
+
+        {/* Pending approvals */}
+        {pendingUsers.length > 0 && (
+          <div style={{ marginBottom: 24 }}>
+            <h2 style={{ fontSize: 16, fontWeight: 700, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+              Pending approvals
+              <span style={{ background: '#FEF3C7', color: '#92400E', fontSize: 12, fontWeight: 700, padding: '2px 8px', borderRadius: 999 }}>{pendingUsers.length}</span>
+            </h2>
+            <div className={styles.tableWrap}>
+              <table className={styles.table}>
+                <thead><tr><th>User</th><th>Email</th><th>Signed up</th><th style={{ textAlign: 'center' }}>Actions</th></tr></thead>
+                <tbody>
+                  {pendingUsers.map((u) => (
+                    <tr key={u.ownerId}>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          {u.profilePictureUrl ? <img src={u.profilePictureUrl} alt="" style={{ width: 28, height: 28, borderRadius: '50%' }} /> : <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--blue-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'var(--blue)' }}>{(u.displayName || '?')[0]}</div>}
+                          <span className={styles.userName}>{u.displayName || 'Unknown'}</span>
+                        </div>
+                      </td>
+                      <td className={styles.userEmail}>{u.email || '--'}</td>
+                      <td className={styles.dateCell}>{formatDateTime(u.createdAt)}</td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button className="btn btn-primary btn-sm" onClick={() => approveUser(u.ownerId)} style={{ marginRight: 6 }}>Approve</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => rejectUser(u.ownerId)}>Reject</button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Invite users */}
+        <div style={{ marginBottom: 24, display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <label style={{ fontSize: 13, fontWeight: 600, color: 'var(--ink-muted)', display: 'block', marginBottom: 4 }}>Invite a user</label>
+            <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="user@email.com" onKeyDown={(e) => e.key === 'Enter' && sendInvite()} style={{ padding: '8px 12px', border: '1.5px solid var(--border)', borderRadius: 8, fontSize: 14, width: '100%', fontFamily: 'var(--sans)', outline: 'none' }} />
+          </div>
+          <button className="btn btn-primary btn-sm" onClick={sendInvite} disabled={!inviteEmail.includes('@')}>Send invite</button>
+          {invites.length > 0 && <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>{invites.length} invite{invites.length !== 1 ? 's' : ''} sent</span>}
         </div>
 
         {/* Users table */}

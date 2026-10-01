@@ -41,7 +41,7 @@ export async function PUT(request) {
       'announcementEnabled', 'announcementText', 'announcementType',
       'maxPostsPerUser', 'maxTemplatesPerUser',
       'schedulerEnabled', 'maxRetriesPerPost',
-      'registrationEnabled', 'allowedEmailDomains',
+      'registrationMode', 'registrationEnabled', 'allowedEmailDomains',
       'sessionTimeoutDays', 'maxSessionsPerUser', 'ipBlacklist',
       'autoDeleteFailedDays', 'autoDeletePublishedDays', 'dataRetentionActivityDays',
     ];

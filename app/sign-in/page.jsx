@@ -39,6 +39,9 @@ export default function SignInPage() {
               {error === 'maintenance' ? 'Platform is under maintenance. Please try again later.' :
                error === 'registration_closed' ? 'New registrations are currently closed.' :
                error === 'domain_not_allowed' ? 'Your email domain is not allowed on this platform.' :
+               error === 'invite_only' ? 'This platform is invite-only. You need an invite link to sign up.' :
+               error === 'invite_invalid' ? 'Your invite link is invalid or expired. Contact the admin for a new one.' :
+               error === 'rejected' ? 'Your account was not approved. Contact the admin for more information.' :
                'Sign-in failed. Please try again.'}
             </div>
           )}

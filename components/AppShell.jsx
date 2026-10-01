@@ -40,19 +40,27 @@ function usePlatformStatus() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // Skip check on non-app pages
-    if (pathname === '/sign-in' || pathname.startsWith('/admin') || pathname === '/maintenance') return;
+    const skipPages = ['/sign-in', '/maintenance', '/pending'];
+    if (skipPages.includes(pathname) || pathname.startsWith('/admin') || pathname.startsWith('/invite')) return;
+
+    // Check maintenance + announcement
     fetch('/api/health')
       .then((r) => r.json())
       .then((data) => {
-        if (data.maintenance) {
-          router.replace('/maintenance');
-          return;
-        }
+        if (data.maintenance) { router.replace('/maintenance'); return; }
         if (data.announcement?.text) {
           const dismissed = sessionStorage.getItem('announcement_dismissed');
           if (!dismissed) setAnnouncement(data.announcement);
         }
+      })
+      .catch(() => {});
+
+    // Check if user account is PENDING approval
+    fetch('/api/auth/status')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data.status === 'PENDING') router.replace('/pending');
+        if (data.status === 'REJECTED') router.replace('/sign-in?error=rejected');
       })
       .catch(() => {});
   }, [pathname]);
@@ -78,7 +86,7 @@ export default function AppShell({ children }) {
   useSchedulerHeartbeat();
   useScreenBeacon();
 
-  if (pathname === '/sign-in' || pathname.startsWith('/admin') || pathname === '/maintenance') return children;
+  if (pathname === '/sign-in' || pathname.startsWith('/admin') || pathname === '/maintenance' || pathname === '/pending' || pathname.startsWith('/invite')) return children;
 
   const bc = announcement ? bannerColors[announcement.type] || bannerColors.info : null;
 
