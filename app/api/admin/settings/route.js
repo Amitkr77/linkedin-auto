@@ -79,12 +79,12 @@ export async function POST() {
     await connectDB();
     const settings = await Settings.findById('platform').lean();
 
-    // Check DB settings first, fall back to env vars
-    const smtpEmail = settings?.smtpEmail || process.env.SMTP_EMAIL;
-    const smtpPassword = settings?.smtpPassword || process.env.SMTP_PASSWORD;
+    // Use ONLY the DB settings — this tests what the admin just saved
+    const smtpEmail = settings?.smtpEmail;
+    const smtpPassword = settings?.smtpPassword;
 
     if (!smtpEmail || !smtpPassword) {
-      return NextResponse.json({ error: 'SMTP not configured. Enter Gmail address and App Password, save, then test.' }, { status: 400 });
+      return NextResponse.json({ error: 'SMTP not configured. Enter Gmail address and App Password, click "Save all settings" first, then test.' }, { status: 400 });
     }
 
     const nodemailer = (await import('nodemailer')).default;
@@ -93,10 +93,10 @@ export async function POST() {
       auth: { user: smtpEmail, pass: smtpPassword },
     });
 
-    const recipientEmail = session.email || smtpEmail;
+    // Send TO the same SMTP email so admin can verify it in that inbox
     await transporter.sendMail({
       from: `"${settings?.platformName || 'LinkedIn Automation'}" <${smtpEmail}>`,
-      to: recipientEmail,
+      to: smtpEmail,
       subject: 'Test email — SMTP is working',
       html: `
         <div style="font-family: -apple-system, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
@@ -112,7 +112,7 @@ export async function POST() {
       `,
     });
 
-    return NextResponse.json({ success: true, message: `Test email sent to ${recipientEmail}` });
+    return NextResponse.json({ success: true, message: `Test email sent to ${smtpEmail}` });
   } catch (error) {
     console.error('[ADMIN TEST EMAIL]', error);
     const msg = error.message?.includes('Invalid login')

@@ -3,13 +3,21 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import styles from './page.module.css';
 
+const TABS = [
+  { id: 'email', label: 'Email', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg> },
+  { id: 'platform', label: 'Platform', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg> },
+  { id: 'scheduler', label: 'Scheduler', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg> },
+  { id: 'access', label: 'Access', icon: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg> },
+];
+
 export default function AdminSettingsPage() {
   const router = useRouter();
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [testing, setTesting] = useState(false);
-  const [msg, setMsg] = useState('');
+  const [msg, setMsg] = useState({ text: '', type: '' });
+  const [tab, setTab] = useState('email');
 
   useEffect(() => {
     fetch('/api/admin/settings')
@@ -26,7 +34,7 @@ export default function AdminSettingsPage() {
 
   const save = async () => {
     setSaving(true);
-    setMsg('');
+    setMsg({ text: '', type: '' });
     try {
       const res = await fetch('/api/admin/settings', {
         method: 'PUT',
@@ -36,162 +44,254 @@ export default function AdminSettingsPage() {
       const json = await res.json();
       if (json.success) {
         setSettings(json.settings);
-        setMsg('Settings saved.');
+        setMsg({ text: 'Settings saved successfully.', type: 'success' });
       } else {
-        setMsg(json.error || 'Failed to save.');
+        setMsg({ text: json.error || 'Failed to save.', type: 'error' });
       }
-    } catch { setMsg('Network error.'); }
+    } catch { setMsg({ text: 'Network error.', type: 'error' }); }
     setSaving(false);
+    setTimeout(() => setMsg({ text: '', type: '' }), 4000);
   };
 
   const testEmail = async () => {
     setTesting(true);
-    setMsg('');
+    setMsg({ text: '', type: '' });
     try {
       const res = await fetch('/api/admin/settings', { method: 'POST' });
       const json = await res.json();
-      setMsg(json.success ? json.message : json.error);
-    } catch { setMsg('Failed to send test email.'); }
+      setMsg({ text: json.success ? json.message : json.error, type: json.success ? 'success' : 'error' });
+    } catch { setMsg({ text: 'Failed to send test email.', type: 'error' }); }
     setTesting(false);
   };
 
   if (loading) return <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--background)' }}>Loading...</div>;
   if (!settings) return <div style={{ padding: 40 }}>Failed to load settings. <a href="/admin">Back</a></div>;
 
+  const smtpConfigured = !!(settings.smtpEmail && (settings.smtpPassword || settings.smtpPasswordMasked));
+
   return (
     <main className={styles.page}>
       <div className={styles.container}>
+        {/* Header */}
         <div className={styles.header}>
-          <div className={styles.headerLeft}>
-            <div>
-              <h1 className={styles.headerTitle}>Platform Settings</h1>
-              <p className={styles.headerSub}>Configure email, limits, and platform behavior.</p>
-            </div>
+          <div>
+            <h1 className={styles.headerTitle}>Settings</h1>
+            <p className={styles.headerSub}>Configure how the platform works.</p>
           </div>
-          <a href="/admin/dashboard" className={styles.backLink}>&larr; Back to dashboard</a>
+          <a href="/admin/dashboard" className={styles.backLink}>&larr; Dashboard</a>
         </div>
 
-        {/* ─── Email / SMTP ─── */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Email notifications</h2>
-          <p className={styles.sectionDesc}>Gmail SMTP settings for sending publish/fail notifications to users.</p>
-          <div className={`card ${styles.sectionCard}`}>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Gmail address</span>
-              <input className={styles.formInput} value={settings.smtpEmail || ''} onChange={(e) => update('smtpEmail', e.target.value)} placeholder="your-email@gmail.com" />
-            </div>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>App password</span>
-              <div>
-                <input className={styles.formInput} value={settings.smtpPassword ?? ''} onChange={(e) => update('smtpPassword', e.target.value)} placeholder={settings.smtpPasswordMasked || 'xxxx xxxx xxxx xxxx'} type="text" autoComplete="off" />
-                <p className={styles.formHint}>Use a Gmail App Password, not your regular password. <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', textDecoration: 'underline' }}>Generate one here</a></p>
-              </div>
-            </div>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Enabled</span>
-              <div className={styles.formToggle}>
-                <button type="button" className={`${styles.toggle} ${settings.emailNotificationsEnabled ? styles.on : ''}`} onClick={() => update('emailNotificationsEnabled', !settings.emailNotificationsEnabled)} />
-                <span className={styles.toggleLabel}>{settings.emailNotificationsEnabled ? 'On — users receive emails' : 'Off — no emails sent'}</span>
-              </div>
-            </div>
-            <button className="btn btn-outline btn-sm" onClick={testEmail} disabled={testing} style={{ marginTop: 12 }}>
-              {testing ? 'Sending...' : 'Send test email'}
+        {/* Tabs */}
+        <div className={styles.tabs}>
+          {TABS.map(({ id, label, icon }) => (
+            <button key={id} className={`${styles.tab} ${tab === id ? styles.tabActive : ''}`} onClick={() => setTab(id)}>
+              <span className={styles.tabIcon}>{icon}</span>
+              {label}
             </button>
-          </div>
+          ))}
         </div>
 
-        {/* ─── Platform ─── */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Platform</h2>
-          <p className={styles.sectionDesc}>General platform settings.</p>
-          <div className={`card ${styles.sectionCard}`}>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Platform name</span>
-              <input className={styles.formInput} value={settings.platformName || ''} onChange={(e) => update('platformName', e.target.value)} />
+        {/* ═══ EMAIL TAB ═══ */}
+        {tab === 'email' && (
+          <div className={styles.section}>
+            <div className={`card ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionIconWrap} style={{ background: '#E8F0EB', color: 'var(--green)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                </div>
+                <div>
+                  <h2 className={styles.sectionTitle}>Email notifications {smtpConfigured ? <span className={styles.statusDot} style={{ background: settings.emailNotificationsEnabled ? 'var(--green)' : 'var(--orange)' }} /> : <span className={styles.statusDot} style={{ background: 'var(--red)' }} />}</h2>
+                  <p className={styles.sectionDesc}>Send automatic emails to users when their posts publish successfully or fail. Uses Gmail SMTP.</p>
+                </div>
+              </div>
+
+              {/* How it works */}
+              <div className={styles.steps}>
+                <div className={styles.step}>
+                  <span className={styles.stepNum}>1</span>
+                  <span>Go to <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--blue)', fontWeight: 600 }}>Google App Passwords</a> and generate a 16-character password for this app.</span>
+                </div>
+                <div className={styles.step}>
+                  <span className={styles.stepNum}>2</span>
+                  <span>Enter your Gmail address and the app password below, then click <strong>Save</strong>.</span>
+                </div>
+                <div className={styles.step}>
+                  <span className={styles.stepNum}>3</span>
+                  <span>Click <strong>Send test email</strong> to verify. You should receive an email at the address you entered.</span>
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Gmail address</label>
+                <input className={styles.input} value={settings.smtpEmail || ''} onChange={(e) => update('smtpEmail', e.target.value)} placeholder="notifications@gmail.com" type="email" />
+                <p className={styles.fieldHint}>This is both the sender and the test recipient. All notification emails will come from this address.</p>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>App password</label>
+                <input className={styles.inputMono} value={settings.smtpPassword ?? ''} onChange={(e) => update('smtpPassword', e.target.value)} placeholder={settings.smtpPasswordMasked || 'xxxx xxxx xxxx xxxx'} autoComplete="off" />
+                <p className={styles.fieldHint}>Not your Gmail password. Generate an App Password from Google. It looks like <code style={{ background: 'var(--hover)', padding: '1px 4px', borderRadius: 3, fontSize: 12 }}>abcd efgh ijkl mnop</code></p>
+              </div>
+
+              <div className={styles.toggleRow}>
+                <div className={styles.toggleInfo}>
+                  <div className={styles.toggleTitle}>Enable email notifications</div>
+                  <div className={styles.toggleDesc}>When off, no emails are sent to any user — even if SMTP is configured.</div>
+                </div>
+                <button type="button" className={`${styles.toggle} ${settings.emailNotificationsEnabled ? styles.on : ''}`} onClick={() => update('emailNotificationsEnabled', !settings.emailNotificationsEnabled)} />
+              </div>
+
+              <div style={{ marginTop: 16, display: 'flex', gap: 10, alignItems: 'center' }}>
+                <button className="btn btn-outline btn-sm" onClick={testEmail} disabled={testing || !smtpConfigured}>
+                  {testing ? 'Sending...' : 'Send test email'}
+                </button>
+                {!smtpConfigured && <span style={{ fontSize: 12, color: 'var(--ink-faint)' }}>Save email and password first</span>}
+              </div>
             </div>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Platform URL</span>
-              <input className={styles.formInput} value={settings.platformUrl || ''} onChange={(e) => update('platformUrl', e.target.value)} placeholder="https://linkedin-auto-vwge.vercel.app" />
-            </div>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Maintenance mode</span>
-              <div className={styles.formToggle}>
+          </div>
+        )}
+
+        {/* ═══ PLATFORM TAB ═══ */}
+        {tab === 'platform' && (
+          <div className={styles.section}>
+            <div className={`card ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionIconWrap} style={{ background: 'var(--blue-light)', color: 'var(--blue)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-2.82.65V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4"/></svg>
+                </div>
+                <div>
+                  <h2 className={styles.sectionTitle}>Platform settings</h2>
+                  <p className={styles.sectionDesc}>General configuration and maintenance controls.</p>
+                </div>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Platform name</label>
+                <input className={styles.input} value={settings.platformName || ''} onChange={(e) => update('platformName', e.target.value)} placeholder="LinkedIn Automation" />
+                <p className={styles.fieldHint}>Shown in email notifications and the browser tab.</p>
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Platform URL</label>
+                <input className={styles.input} value={settings.platformUrl || ''} onChange={(e) => update('platformUrl', e.target.value)} placeholder="https://your-app.vercel.app" />
+              </div>
+
+              <div className={styles.toggleRow}>
+                <div className={styles.toggleInfo}>
+                  <div className={styles.toggleTitle}>Maintenance mode</div>
+                  <div className={styles.toggleDesc}>When on, new users cannot sign in. Existing sessions remain active until they expire.</div>
+                </div>
                 <button type="button" className={`${styles.toggle} ${settings.maintenanceMode ? styles.on : ''}`} onClick={() => update('maintenanceMode', !settings.maintenanceMode)} />
-                <span className={styles.toggleLabel}>{settings.maintenanceMode ? 'ON — users see maintenance page' : 'Off'}</span>
+              </div>
+
+              {settings.maintenanceMode && (
+                <>
+                  <div className={styles.field} style={{ marginTop: 12 }}>
+                    <label className={styles.fieldLabel}>Maintenance message</label>
+                    <input className={styles.input} value={settings.maintenanceMessage || ''} onChange={(e) => update('maintenanceMessage', e.target.value)} />
+                  </div>
+                  <div className={styles.warningBox}>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                    Maintenance mode is ON. New logins are blocked.
+                  </div>
+                </>
+              )}
+
+              <div className={styles.field} style={{ marginTop: 20 }}>
+                <label className={styles.fieldLabel}>Max posts per user</label>
+                <input className={styles.inputSmall} type="number" value={settings.maxPostsPerUser || 500} onChange={(e) => update('maxPostsPerUser', parseInt(e.target.value) || 500)} min="1" />
+              </div>
+
+              <div className={styles.field}>
+                <label className={styles.fieldLabel}>Max templates per user</label>
+                <input className={styles.inputSmall} type="number" value={settings.maxTemplatesPerUser || 50} onChange={(e) => update('maxTemplatesPerUser', parseInt(e.target.value) || 50)} min="1" />
               </div>
             </div>
-            {settings.maintenanceMode && (
-              <div className={styles.formRow}>
-                <span className={styles.formLabel}>Message</span>
-                <input className={styles.formInput} value={settings.maintenanceMessage || ''} onChange={(e) => update('maintenanceMessage', e.target.value)} />
+          </div>
+        )}
+
+        {/* ═══ SCHEDULER TAB ═══ */}
+        {tab === 'scheduler' && (
+          <div className={styles.section}>
+            <div className={`card ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionIconWrap} style={{ background: '#FEF3C7', color: '#92400E' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                </div>
+                <div>
+                  <h2 className={styles.sectionTitle}>Scheduler {settings.schedulerEnabled ? <span className={styles.statusDot} style={{ background: 'var(--green)' }} /> : <span className={styles.statusDot} style={{ background: 'var(--red)' }} />}</h2>
+                  <p className={styles.sectionDesc}>The scheduler runs every ~60 seconds and publishes posts whose scheduled time has passed. These settings control its behavior.</p>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* ─── User limits ─── */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>User limits</h2>
-          <p className={styles.sectionDesc}>Control resource usage per user.</p>
-          <div className={`card ${styles.sectionCard}`}>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Max posts/user</span>
-              <input className={styles.formInput} type="number" value={settings.maxPostsPerUser || 500} onChange={(e) => update('maxPostsPerUser', parseInt(e.target.value) || 500)} style={{ width: 120 }} />
-            </div>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Max templates/user</span>
-              <input className={styles.formInput} type="number" value={settings.maxTemplatesPerUser || 50} onChange={(e) => update('maxTemplatesPerUser', parseInt(e.target.value) || 50)} style={{ width: 120 }} />
-            </div>
-          </div>
-        </div>
-
-        {/* ─── Scheduler ─── */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Scheduler</h2>
-          <p className={styles.sectionDesc}>Control auto-publishing behavior.</p>
-          <div className={`card ${styles.sectionCard}`}>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Scheduler enabled</span>
-              <div className={styles.formToggle}>
+              <div className={styles.toggleRow}>
+                <div className={styles.toggleInfo}>
+                  <div className={styles.toggleTitle}>Auto-publish enabled</div>
+                  <div className={styles.toggleDesc}>When off, the scheduler skips all posts. Posts stay as PENDING until you manually publish them or re-enable.</div>
+                </div>
                 <button type="button" className={`${styles.toggle} ${settings.schedulerEnabled ? styles.on : ''}`} onClick={() => update('schedulerEnabled', !settings.schedulerEnabled)} />
-                <span className={styles.toggleLabel}>{settings.schedulerEnabled ? 'On — posts auto-publish' : 'Off — posts stay pending'}</span>
+              </div>
+
+              {!settings.schedulerEnabled && (
+                <div className={styles.warningBox}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Scheduler is OFF. No posts will auto-publish for any user.
+                </div>
+              )}
+
+              <div className={styles.field} style={{ marginTop: 20 }}>
+                <label className={styles.fieldLabel}>Max retries on failure</label>
+                <input className={styles.inputSmall} type="number" value={settings.maxRetriesPerPost || 3} onChange={(e) => update('maxRetriesPerPost', parseInt(e.target.value) || 3)} min="0" max="10" />
+                <p className={styles.fieldHint}>If LinkedIn returns a temporary error (500, 429, timeout), the scheduler retries this many times with increasing delays (5min, 10min, 20min). After exhausting retries, the post is marked FAILED.</p>
               </div>
             </div>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Max retries</span>
-              <input className={styles.formInput} type="number" value={settings.maxRetriesPerPost || 3} onChange={(e) => update('maxRetriesPerPost', parseInt(e.target.value) || 3)} style={{ width: 80 }} min="0" max="10" />
-            </div>
           </div>
-        </div>
+        )}
 
-        {/* ─── Registration ─── */}
-        <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Registration</h2>
-          <p className={styles.sectionDesc}>Control who can sign up.</p>
-          <div className={`card ${styles.sectionCard}`}>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Registration open</span>
-              <div className={styles.formToggle}>
+        {/* ═══ ACCESS TAB ═══ */}
+        {tab === 'access' && (
+          <div className={styles.section}>
+            <div className={`card ${styles.sectionCard}`}>
+              <div className={styles.sectionHeader}>
+                <div className={styles.sectionIconWrap} style={{ background: '#FEE2E2', color: 'var(--red)' }}>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                </div>
+                <div>
+                  <h2 className={styles.sectionTitle}>Access control</h2>
+                  <p className={styles.sectionDesc}>Control who can create an account on this platform.</p>
+                </div>
+              </div>
+
+              <div className={styles.toggleRow}>
+                <div className={styles.toggleInfo}>
+                  <div className={styles.toggleTitle}>Open registration</div>
+                  <div className={styles.toggleDesc}>When off, only existing users can sign in. New LinkedIn accounts are rejected.</div>
+                </div>
                 <button type="button" className={`${styles.toggle} ${settings.registrationEnabled ? styles.on : ''}`} onClick={() => update('registrationEnabled', !settings.registrationEnabled)} />
-                <span className={styles.toggleLabel}>{settings.registrationEnabled ? 'On — anyone can sign in' : 'Off — new sign-ins blocked'}</span>
               </div>
-            </div>
-            <div className={styles.formRow}>
-              <span className={styles.formLabel}>Allowed domains</span>
-              <div>
-                <input className={styles.formInput} value={settings.allowedEmailDomains || ''} onChange={(e) => update('allowedEmailDomains', e.target.value)} placeholder="company.com, agency.io" />
-                <p className={styles.formHint}>Comma-separated. Leave empty to allow all domains.</p>
+
+              <div className={styles.field} style={{ marginTop: 20 }}>
+                <label className={styles.fieldLabel}>Allowed email domains</label>
+                <input className={styles.input} value={settings.allowedEmailDomains || ''} onChange={(e) => update('allowedEmailDomains', e.target.value)} placeholder="company.com, agency.io" />
+                <p className={styles.fieldHint}>Comma-separated list of email domains. Only LinkedIn accounts with these email domains can sign up. Leave empty to allow all domains.</p>
               </div>
+
+              {!settings.registrationEnabled && (
+                <div className={styles.warningBox}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" style={{ flexShrink: 0, marginTop: 1 }}><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+                  Registration is closed. New users cannot create accounts.
+                </div>
+              )}
             </div>
           </div>
-        </div>
+        )}
 
-        {/* ─── Save ─── */}
+        {/* ═══ STICKY SAVE BAR ═══ */}
         <div className={styles.actions}>
           <button className="btn btn-primary" onClick={save} disabled={saving}>
-            {saving ? 'Saving...' : 'Save all settings'}
+            {saving ? 'Saving...' : 'Save settings'}
           </button>
-          {msg && <span className={styles.successMsg}>{msg}</span>}
+          {msg.text && <span className={msg.type === 'success' ? styles.msgSuccess : styles.msgError}>{msg.text}</span>}
         </div>
       </div>
     </main>
